@@ -1,0 +1,6 @@
+[submodule "external/liquid-dsp"]
+	path = external/liquid-dsp
+	url = https://github.com/jgaeddert/liquid-dsp.git
+[submodule "external/LimeSuite"]
+	path = external/LimeSuite
+	url = https://github.com/myriadrf/LimeSuite.git
