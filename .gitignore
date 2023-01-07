@@ -1,1 +1,41 @@
+# ignore build directory
 build/**
+
+# ignore all object files
+*.a
+*.ar
+*.d
+*.dylib
+*.dSYM
+*.gcda
+*.gcno
+*.o
+*.so
+
+# ignore swap files for vim editing
+*.swp
+
+# build objects 
+autom4te.cache
+aclocal.m4
+
+# ignore all auto-generated targets
+autotest_include.h
+benchmark
+benchmark_include.h
+bench/fftbench
+configure
+config.h
+config.h.in
+config.h.in~
+config.log
+config.status
+makefile
+xautotest
+*.m
+
+# miscellany
+octave-core
+*.tar
+*.gz
+.DS_Store
