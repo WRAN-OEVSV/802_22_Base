@@ -15,12 +15,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(WRAN_SOURCES
     "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp" 
     "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp" 
-    "${PROJECT_SOURCE_DIR}/log.cpp"
+    "${PROJECT_SOURCE_DIR}/util/log.cpp"
 )
 
 set(WRAN_INCLUDES
     "${PROJECT_SOURCE_DIR}"
     "${PROJECT_SOURCE_DIR}/phy"
+    "${PROJECT_SOURCE_DIR}/util"
     "${PROJECT_SOURCE_DIR}/external/spdlog/include"
 )
 
