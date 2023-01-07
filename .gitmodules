@@ -4,3 +4,6 @@
 [submodule "external/LimeSuite"]
 	path = external/LimeSuite
 	url = https://github.com/myriadrf/LimeSuite.git
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = https://github.com/gabime/spdlog.git
