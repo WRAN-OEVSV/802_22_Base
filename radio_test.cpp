@@ -9,10 +9,9 @@
 #include <fstream> 
 #include <complex>
 
-
-
 // #####################################################
-// in ../build => g++ ../phy/*.cpp -I../phy -std=c++17 -pthread -lLimeSuite -L/usr/lib -o radio_test
+// in ../build => g++ ../*.cpp ../phy/*.cpp -I.. -I../phy -I../external/spdlog/include -std=c++17 -pthread -lLimeSuite -L/usr/lib -o radio_test
+// use cmake now!!!
 
 // test program reading 2 sec of IQ data using a thread 
 // RadioThread run() is reading the 2 sec data

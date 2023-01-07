@@ -9,9 +9,6 @@
 #include <complex>
 
 
-
-
-
 #define SPIN_WAIT_SLEEP_MS 5
 
 RadioThread::RadioThread() {

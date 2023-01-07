@@ -13,8 +13,8 @@
 
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
-#include "log.h"
 
+//#include "log.h"
 
 class LimeRadioThread : public RadioThread {
 public:
