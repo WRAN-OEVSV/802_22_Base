@@ -3,6 +3,7 @@
 
 std::shared_ptr<spdlog::logger> Log::s_RadioLogger;
 std::shared_ptr<spdlog::logger> Log::s_PhyLogger;
+std::shared_ptr<spdlog::logger> Log::s_TestLogger;
 
 void Log::Init() {
 
