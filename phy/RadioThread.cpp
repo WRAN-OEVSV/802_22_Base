@@ -9,15 +9,20 @@
 #include <complex>
 
 
+// for some stuff around the iq queue handling ideas from CubicSDR were taken 
+// CubuicSDR (c) Charles J. Cliffe
+
 #define SPIN_WAIT_SLEEP_MS 5
 
 RadioThread::RadioThread() {
-    LOG_RADIO_TRACE("RadioThread constructor");
+    LOG_RADIO_DEBUG("RadioThread() constructor");
     terminated.store(false);
     stopping.store(false);
+    m_isReceiverRunning.store(false);
 }
 
 RadioThread::~RadioThread() {
+    LOG_RADIO_DEBUG("RadioThread() de-constructor");
     terminated.store(true);
     stopping.store(true);
 }
@@ -39,11 +44,11 @@ void RadioThread::threadMain() {
 }
 
 void RadioThread::setup() {
-    //redefined in subclasses
+    // defined in radio specific class (e.g. LimeRadioThread)
 }
 
 void RadioThread::run() {
-    //redefined in subclasses
+    // defined in radio specific class (e.g. LimeRadioThread)
 }
 
 
@@ -79,7 +84,7 @@ bool RadioThread::isTerminated(int waitMs) {
         }
     }
 
-    std::cout << "ERROR: thread '" << typeid(*this).name() << "' has not terminated in time ! (> " << waitMs << " ms)" << std::endl << std::flush;
+    LOG_RADIO_ERROR("ERROR: thread {} has not terminated in time ! (> {}  ms)<< ", typeid(*this).name() , waitMs );
 
     return terminated.load();
 }
@@ -90,14 +95,25 @@ void RadioThread::setFrequency(double frequency)
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
-void RadioThread::getIQData()
-{
-    // defined in radio specific class (e.g. LimeRadioThread)
+// void RadioThread::getIQData()
+// {
+//     // defined in radio specific class (e.g. LimeRadioThread)
+// }
+
+// void RadioThread::setIQData()
+// {
+//     // defined in radio specific class (e.g. LimeRadioThread)
+// }
+
+
+void RadioThread::setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
+    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+    LOG_RADIO_DEBUG("setRXQueue()");
+    m_rx_queue = threadQueue;
 }
 
-void RadioThread::setIQData()
-{
-    // defined in radio specific class (e.g. LimeRadioThread)
+ThreadIQDataQueueBasePtr RadioThread::getRXQueue() {
+    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+    LOG_RADIO_DEBUG("getRXQueue() ");
+    return m_rx_queue;
 }
-
-

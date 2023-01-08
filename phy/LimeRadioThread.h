@@ -1,3 +1,5 @@
+#pragma once
+
 #include <mutex>
 #include <atomic>
 #include <deque>
@@ -14,7 +16,7 @@
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
 
-//#include "log.h"
+#include "util/log.h"
 
 class LimeRadioThread : public RadioThread {
 public:
@@ -29,15 +31,15 @@ public:
     void terminate() override;
 
     void setFrequency(double frequency) override;
-    void getIQData();
-    void setIQData();
+    // void getIQData();
+    // void setIQData();
 
 private:
 
 
-    lms_device_t* device = NULL;
-    lms_stream_t streamId; //stream structure
-    lms_stream_meta_t rx_metadata; //Use metadata for additional control over sample receive function behavior
+    lms_device_t* m_lms_device = NULL;
+    lms_stream_t m_rx_streamId; //stream structure
+    lms_stream_meta_t m_rx_metadata; //Use metadata for additional control over sample receive function behavior
 
 
     //data buffers
@@ -45,7 +47,8 @@ private:
     void *IQbuffer  { nullptr };
 
 
-    RadioThreadIQDataQueue IQdataOutQueue {};
+    RadioThreadIQDataQueuePtr IQdataOutQueue; // = std::make_shared<RadioThreadIQDataQueue>();
+    RadioThreadIQDataPtr IQdataOut;
     
     int initLimeSDR();
     void closeLimeSDR();

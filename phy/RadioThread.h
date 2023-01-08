@@ -1,3 +1,5 @@
+#pragma once
+
 #include <mutex>
 #include <atomic>
 #include <deque>
@@ -9,13 +11,47 @@
 #include <memory>
 #include <climits>
 #include <vector>
+#include <deque>
 #include <complex>
 
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
 #include "RadioConfig.h"
 
-#include "log.h"
+#include "util/log.h"
+
+
+// for some stuff around the iq queue handling ideas from CubicSDR were taken  
+// CubuicSDR (c) Charles J. Cliffe
+
+class SpinMutex {
+
+public:
+    SpinMutex() = default;
+
+    SpinMutex(const SpinMutex&) = delete;
+
+    SpinMutex& operator=(const SpinMutex&) = delete;
+
+    ~SpinMutex() { lock_state.clear(std::memory_order_release); }
+
+    void lock() { while (lock_state.test_and_set(std::memory_order_acquire)); }
+
+    bool try_lock() {return !lock_state.test_and_set(std::memory_order_acquire); }
+
+    void unlock() { lock_state.clear(std::memory_order_release); }
+
+private:
+    std::atomic_flag lock_state = ATOMIC_FLAG_INIT;
+};
+
+struct map_string_less
+{
+    bool operator()(const std::string& a,const std::string& b) const
+    {
+        return a.compare(b) < 0;
+    }
+};
 
 /**
  * RadioThreadIQData class
@@ -34,11 +70,8 @@ public:
 
     RadioThreadIQData() :
             frequency(DEFAULT_CENTER_FREQ), sampleRate(DEFAULT_SAMPLE_RATE), timestampFirstSample(0) {
-
-    }
-
-    RadioThreadIQData(long long bandwidth, long long frequency, std::vector<signed char> * /* data */) :
-            frequency(frequency), sampleRate(bandwidth), timestampFirstSample(0) {
+    
+//        LOG_RADIO_DEBUG("RadioThreadIQData() constructor");
 
     }
 
@@ -48,40 +81,95 @@ public:
 typedef std::shared_ptr<RadioThreadIQData> RadioThreadIQDataPtr;
 
 
+
+class ThreadIQDataQueueBase {
+};
+
+typedef std::shared_ptr<ThreadIQDataQueueBase> ThreadIQDataQueueBasePtr;
+
 /**
  * RadioThreadIQDataQueue class
  *
  * @note for storing IQ sample blocks - currently more a quick hack to get IQ data to verify it
  *
  */
-class RadioThreadIQDataQueue {
+class RadioThreadIQDataQueue : public ThreadIQDataQueueBase {
 public:
 
-    std::vector<RadioThreadIQDataPtr> iq_queue;
+    typedef typename std::deque<RadioThreadIQDataPtr>::value_type value_type;
+    typedef typename std::deque<RadioThreadIQDataPtr>::size_type size_type;
 
-    RadioThreadIQDataPtr current;
- 
     RadioThreadIQDataQueue() { 
-
+        // constructor
         LOG_RADIO_DEBUG("RadioThreadIQDataQueue() constructor");
-        // add new object to iq_queue
-
-        current = std::make_shared<RadioThreadIQData>();
-        iq_queue.push_back(current);
 
     }
 
-    void add() {
+    void set_max_items(unsigned int max_items) {
+        std::lock_guard < SpinMutex > lock(m_mutex);
 
-        current = std::make_shared<RadioThreadIQData>();
-        iq_queue.push_back(current);
+        LOG_RADIO_DEBUG("set_max_items() {}", max_items);
+
+        if (max_items > m_max_items) {
+            m_max_items = max_items;
+        }
+    }
+
+    bool push(const value_type& item) {
+        std::unique_lock < SpinMutex > lock(m_mutex);
+
+        //LOG_RADIO_DEBUG("push() size queue {} - max {}", iq_queue.size(), m_max_items);
+
+        if(m_iq_queue.size() >= m_max_items) {
+            return false;
+            LOG_RADIO_ERROR("push() queue full");
+        }
+
+        m_iq_queue.push_back(item);
+        return true;
+    }
+
+    bool pop(value_type& item) {
+        std::unique_lock < SpinMutex > lock(m_mutex);
+
+        if(m_iq_queue.size() > 0) {
+            item = m_iq_queue.front();
+            m_iq_queue.pop_front();
+            return true;
+        }
+
+        return false;
+    }
+
+    void flush() {
+        std::lock_guard < SpinMutex > lock(m_mutex);
+        m_iq_queue.clear();
+    }
+
+    size_type size() const {
+        std::lock_guard < SpinMutex > lock(m_mutex);
+        return m_iq_queue.size();
+    }
+
+    void print_size() {
+        LOG_RADIO_DEBUG("RadioThreadIQDataQueue() size queue {}", m_iq_queue.size());
     }
 
 
     ~RadioThreadIQDataQueue() { 
         LOG_RADIO_DEBUG("RadioThreadIQDataQueue() de-constructor");
     }
+
+private:
+
+    std::deque<RadioThreadIQDataPtr> m_iq_queue;
+    mutable SpinMutex m_mutex;
+
+    size_t m_max_items = 1; // default value for max items
+
 };
+
+typedef std::shared_ptr<RadioThreadIQDataQueue> RadioThreadIQDataQueuePtr;
 
 
 class RadioThread {
@@ -98,19 +186,26 @@ public:
     //Request for termination (asynchronous)
     virtual void terminate();
 
-    //Returns true if the thread is indeed terminated, i.e the run() method
-    //has returned. 
-    //If wait > 0 ms, the call is blocking at most 'waitMs' milliseconds for the thread to die, then returns.
-    //If wait < 0, the wait in infinite until the thread dies.
+    //Returns true if the thread is indeed terminated, i.e the run() method has returned. 
     bool isTerminated(int waitMs = 0);
-    
+
+    void setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue);
+    ThreadIQDataQueueBasePtr getRXQueue();
 
     // SDR Radio stuff as virutal functions which are then defined in the specifc radio class
 
     /**
+     * @brief checks if LMSReceive is running in run()
+     * 
+     * @return true 
+     * @return false 
+     */
+    bool isReceiverRunning() {
+        return m_isReceiverRunning.load();
+    }
+
+    /**
      * Set RF center frequency in Hz.
-     *
-     * @note tbd
      *
      * @param   frequency   Desired RF center frequency in Hz
      *
@@ -118,21 +213,19 @@ public:
      */
     virtual void setFrequency(double frequency);
 
-    /**
-     * get IQ Data from Queue
-     *
-     * @note currently used for debug - is writing a CSV file with the buffer content
-     *
-     * @param   none
-     *
-     * @return  void
-     */
-    virtual void getIQData();
-    virtual void setIQData();
-
+    // done via queues now
+    // virtual void getIQData();
+    // virtual void setIQData();
     
 protected:
+//    ThreadIQDataQueueBasePtr m_tx_queue;
+    ThreadIQDataQueueBasePtr m_rx_queue;
+
+    std::mutex m_queue_bindings_mutex;
+
     std::atomic_bool stopping;
+
+    std::atomic_bool m_isReceiverRunning;
 
 private:
     //true when the thread has really ended, i.e run() from threadMain() has returned.
