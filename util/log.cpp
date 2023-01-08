@@ -14,5 +14,8 @@ void Log::Init() {
     s_PhyLogger = spdlog::stdout_color_mt("PHY");
     s_PhyLogger->set_level(spdlog::level::trace);
 
+    s_TestLogger = spdlog::stdout_color_mt("TEST");
+    s_TestLogger->set_level(spdlog::level::trace);
+
 
 }
