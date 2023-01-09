@@ -46,6 +46,8 @@ add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
 target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json )
 
+configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
+
 #message(${WRAN_INCLUDES})
 #message(${WRAN_SOURCES})
 
