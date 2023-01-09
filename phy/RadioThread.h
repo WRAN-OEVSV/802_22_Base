@@ -16,7 +16,7 @@
 
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
-#include "RadioConfig.h"
+#include "phy/DefaultRadioConfig.h"
 
 #include "util/log.h"
 
@@ -192,6 +192,9 @@ public:
     void setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue);
     ThreadIQDataQueueBasePtr getRXQueue();
 
+    void setTXQueue(const ThreadIQDataQueueBasePtr& threadQueue);
+    ThreadIQDataQueueBasePtr getTXQueue();
+
     // SDR Radio stuff as virutal functions which are then defined in the specifc radio class
 
     /**
@@ -204,6 +207,15 @@ public:
         return m_isReceiverRunning.load();
     }
 
+    void setRxOn() {
+        m_isRX.store(true); // true = RX
+    }
+
+    void setTxOn() {
+        m_isRX.store(false); // true = TX
+    }
+
+
     /**
      * Set RF center frequency in Hz.
      *
@@ -211,14 +223,22 @@ public:
      *
      * @return  void
      */
-    virtual void setFrequency(double frequency);
+    virtual void setFrequency(float_t frequency);
+
+    /**
+     * @brief Set the Sampling_Rate and Oversampling
+     * 
+     * @param sampling_rate (in Hz)
+     * @param oversampling (0,2,4,8)
+     */
+    virtual void setSamplingRate(float_t sampling_rate, size_t oversampling);
 
     // done via queues now
     // virtual void getIQData();
     // virtual void setIQData();
     
 protected:
-//    ThreadIQDataQueueBasePtr m_tx_queue;
+    ThreadIQDataQueueBasePtr m_tx_queue;
     ThreadIQDataQueueBasePtr m_rx_queue;
 
     std::mutex m_queue_bindings_mutex;
@@ -226,6 +246,12 @@ protected:
     std::atomic_bool stopping;
 
     std::atomic_bool m_isReceiverRunning;
+
+    /**
+     * @brief m_isRX is true when the RadioThread is in RX mode; if false the thread is running in TX
+     * 
+     */
+    std::atomic_bool m_isRX;
 
 private:
     //true when the thread has really ended, i.e run() from threadMain() has returned.

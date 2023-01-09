@@ -1,5 +1,5 @@
 #include "phy/RadioThread.h"
-#include "RadioConfig.h"
+#include "phy/DefaultRadioConfig.h"
 #include "LimeRadioThread.h"
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
@@ -30,14 +30,6 @@ LimeRadioThread::~LimeRadioThread() {
     closeLimeSDR();
 }
 
-void LimeRadioThread::setFrequency(double frequency)
-{
-    LOG_RADIO_TRACE("LimeRadioThread set freq to {} MHZ", frequency);
-
-    //Set center frequency to freq
-    if (LMS_SetLOFrequency(m_lms_device, LMS_CH_RX, 0, frequency) != 0)
-        error();
-}
 
 
 /**
@@ -55,15 +47,17 @@ void LimeRadioThread::run() {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    IQdataOutQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
+    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
 
     LOG_RADIO_DEBUG("run() stream handle {}", m_rx_streamId.handle);
-    LOG_RADIO_TRACE("run() IQbuffer {}", IQbuffer);
+    LOG_RADIO_TRACE("run() m_rxIQbuffer {}", m_rxIQbuffer);
 
-    LOG_RADIO_TRACE("run() IQdataOutQueue {}", IQdataOutQueue.use_count());
+    LOG_RADIO_TRACE("run() m_IQdataRXQueue {}", m_IQdataRXQueue.use_count());
+
+    printRadioConfig();
 
     int sec_aquis = 2;
-    double samplesTotal = 0;
+    double samplesTotalRX = 0;
  
     LOG_RADIO_TRACE("SDR thread run for {} sec",sec_aquis);
 
@@ -71,41 +65,49 @@ void LimeRadioThread::run() {
     while((std::chrono::high_resolution_clock::now() - t1 < std::chrono::seconds(sec_aquis)) && !stopping)
     {
 
-        //Receive samples
-        int samplesRead = LMS_RecvStream(&m_rx_streamId, IQbuffer, sampleCnt, &m_rx_metadata, 500);
+        if(m_isRX) {
+            // SDR is running in RX mode
 
-        //I and Q samples are interleaved in buffer: IQIQIQ...
-        float *pp = (float *)IQbuffer;
-        liquid_float_complex s;
+            //Receive samples
+            int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
+
+            //I and Q samples are interleaved in buffer: IQIQIQ...
+            float *pp = (float *)m_rxIQbuffer;
+            liquid_float_complex s;
 
 
-        // @tcheck  suboptimal ?? as it creates a new object for every fetch .. 
-        IQdataOut = std::make_shared<RadioThreadIQData>();
+            // @tcheck  suboptimal ?? as it creates a new object for every fetch .. 
+            m_rxIQdataOut = std::make_shared<RadioThreadIQData>();
 
-        IQdataOut->timestampFirstSample = m_rx_metadata.timestamp;
+            m_rxIQdataOut->timestampFirstSample = m_rx_metadata.timestamp;
 
-        if(samplesRead > 0)
-        {
+            if(samplesRead > 0)
+            {
 
-            for (int i = 0; i < samplesRead; i++) {
-                s.real(pp[2 * i]);
-                s.imag(pp[2 * i + 1]);
+                for (int i = 0; i < samplesRead; i++) {
+                    s.real(pp[2 * i]);
+                    s.imag(pp[2 * i + 1]);
 
-                IQdataOut->data.push_back(s);
+                    m_rxIQdataOut->data.push_back(s);
+                }
             }
+
+            // add new sample buffer block in queue
+            if(!m_IQdataRXQueue->push(m_rxIQdataOut)) {
+                LOG_RADIO_ERROR("run() queue is full - somebody to take the data - quick!!");
+            }
+
+            samplesTotalRX += samplesRead;
+
+        } else {
+            // sdr running in TX mode
         }
 
-        // add new sample buffer block in queue
-        if(!IQdataOutQueue->push(IQdataOut)) {
-            LOG_RADIO_ERROR("run() queue is full - somebody to take the data - quick!!");
-        }
-
-        samplesTotal += samplesRead;
 
     }
 
     m_isReceiverRunning.store(false);
-    LOG_RADIO_TRACE("Total Samples {}", samplesTotal);
+    LOG_RADIO_TRACE("Total Samples RX {}", samplesTotalRX);
     LOG_RADIO_INFO("SDR thread done.");
 
 }
@@ -113,10 +115,16 @@ void LimeRadioThread::run() {
 void LimeRadioThread::terminate() {
     RadioThread::terminate();
 
-    IQdataOutQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
+    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
 
-    if (IQdataOutQueue != nullptr) {
-        IQdataOutQueue->flush();
+    if (m_IQdataRXQueue != nullptr) {
+        m_IQdataRXQueue->flush();
+    }
+
+    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getTXQueue());
+
+    if (m_IQdataTXQueue != nullptr) {
+        m_IQdataTXQueue->flush();
     }
 }
 
@@ -167,9 +175,19 @@ int LimeRadioThread::initLimeSDR() {
     if (LMS_EnableChannel(m_lms_device, LMS_CH_RX, LMS_Channel, true) != 0)
         error();
 
-    //Set center frequency 
+    //Set RX center frequency 
     if (LMS_SetLOFrequency(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_CENTER_FREQ) != 0)
         error();
+
+    //Enable TX channel
+    //Channels are numbered starting at 0
+    if (LMS_EnableChannel(m_lms_device, LMS_CH_TX, LMS_Channel, true) != 0)
+        error();
+
+    //Set TX center frequency 
+    if (LMS_SetLOFrequency(m_lms_device, LMS_CH_TX, LMS_Channel, DEFAULT_CENTER_FREQ) != 0)
+        error();
+
 
     //This set sampling rate for all channels
     if (LMS_SetSampleRate(m_lms_device, DEFAULT_SAMPLE_RATE, DEFAULT_OVERSAMPLING) != 0)
@@ -190,37 +208,70 @@ void LimeRadioThread::closeLimeSDR() {
 
 void LimeRadioThread::initStreaming() {
 
-    //Streaming Setup
-    LOG_RADIO_INFO("Init Streaming");
+    //RX Streaming Setup
+    LOG_RADIO_INFO("Init RX Streaming");
 
     //Initialize stream
     m_rx_streamId.channel = LMS_Channel;                 //channel number
     m_rx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_rx_streamId.throughputVsLatency = 1.0;             //optimize for max throughput
+    m_rx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
     m_rx_streamId.isTx = false;                          //RX channel
     m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_rx_streamId) != 0)
         error();
 
     //allocate memory for IQ Buffer used by LMS_Receive
-    if (IQbuffer != nullptr) {
-            ::free(IQbuffer);
+    if (m_rxIQbuffer != nullptr) {
+            ::free(m_rxIQbuffer);
     }
-    IQbuffer = std::malloc(sampleCnt * 4 * sizeof(float));
+    m_rxIQbuffer = std::malloc(m_rxSampleCnt * 4 * sizeof(float));
 
     
-    LOG_RADIO_TRACE("initStreaming() IQbuffer {}",IQbuffer);
-    LOG_RADIO_TRACE("initStreaming() size IQbuffer {}", sampleCnt * 4 * sizeof(int16_t));
+    LOG_RADIO_TRACE("initStreaming() m_rxIQbuffer {}",m_rxIQbuffer);
+    LOG_RADIO_TRACE("initStreaming() size m_rxIQbuffer {}", m_rxSampleCnt * 4 * sizeof(int16_t));
 
     //Start streaming
     if(LMS_StartStream(&m_rx_streamId) != 0)
-        LOG_RADIO_ERROR("StartStream Error");
+        LOG_RADIO_ERROR("RX StartStream Error");
 
-    LOG_RADIO_TRACE("initStreaming() stream handle {}", m_rx_streamId.handle);
+    LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_rx_streamId.handle);
 
     //Streaming Metadata
     m_rx_metadata.flushPartialPacket = false; //currently has no effect in RX
     m_rx_metadata.waitForTimestamp = false; //currently has no effect in RX
+
+
+    //TX Streaming Setup
+    LOG_RADIO_INFO("Init TX Streaming");
+
+    //Initialize TX stream
+    m_tx_streamId.channel = LMS_Channel;                 //channel number
+    m_tx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
+    m_tx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
+    m_tx_streamId.isTx = true;                          //RX channel
+    m_tx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
+    if (LMS_SetupStream(m_lms_device, &m_tx_streamId) != 0)
+        error();
+
+    //allocate memory for IQ Buffer used by LMS_Receive
+    if (m_txIQbuffer != nullptr) {
+            ::free(m_txIQbuffer);
+    }
+    m_txIQbuffer = std::malloc(m_txSampleCnt * 4 * sizeof(float));
+
+    
+    LOG_RADIO_TRACE("initStreaming() m_txIQbuffer {}",m_txIQbuffer);
+    LOG_RADIO_TRACE("initStreaming() size m_txIQbuffer {}", m_txSampleCnt * 4 * sizeof(int16_t));
+
+    //Start streaming
+    if(LMS_StartStream(&m_tx_streamId) != 0)
+        LOG_RADIO_ERROR("TX StartStream Error");
+
+    LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_tx_streamId.handle);
+
+    //Streaming Metadata
+    m_tx_metadata.flushPartialPacket = false; //currently has no effect in RX
+    m_tx_metadata.waitForTimestamp = true; //currently has no effect in RX
 
 
 }
@@ -230,9 +281,68 @@ void LimeRadioThread::stopStreaming() {
     //Stop streaming
     LOG_RADIO_INFO("Stop Streaming");
 
-    std::free(IQbuffer);
+    std::free(m_rxIQbuffer);
 
     LMS_StopStream(&m_rx_streamId); //stream is stopped but can be started again with LMS_StartStream()
     LMS_DestroyStream(m_lms_device, &m_rx_streamId); //stream is deallocated and can no longer be used
+
+    std::free(m_txIQbuffer);
+
+    LMS_StopStream(&m_tx_streamId); //stream is stopped but can be started again with LMS_StartStream()
+    LMS_DestroyStream(m_lms_device, &m_tx_streamId); //stream is deallocated and can no longer be used
+
+
+}
+
+void LimeRadioThread::setFrequency(float_t frequency)
+{
+    LOG_RADIO_TRACE("setFrequency() set freq to {} MHZ", frequency);
+
+    LMS_StopStream(&m_rx_streamId);
+    LMS_StopStream(&m_tx_streamId);
+
+
+    //Set center frequency to freq
+    if (LMS_SetLOFrequency(m_lms_device, LMS_CH_RX, 0, frequency) != 0)
+        error();
+
+    //Set center frequency to freq
+    if (LMS_SetLOFrequency(m_lms_device, LMS_CH_TX, 0, frequency) != 0)
+        error();
+
+    if(LMS_StartStream(&m_rx_streamId) != 0)
+        LOG_RADIO_ERROR("RX StartStream Error");
+    if(LMS_StartStream(&m_tx_streamId) != 0)
+        LOG_RADIO_ERROR("TX StartStream Error");
+
+
+}
+
+void LimeRadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
+{
+    LOG_RADIO_TRACE("setFrequency() set sampling_rate {} and oversampling {}", sampling_rate, oversampling);
+
+    LMS_StopStream(&m_rx_streamId);
+    LMS_StopStream(&m_tx_streamId);
+
+    if (LMS_SetSampleRate(m_lms_device, sampling_rate, oversampling) != 0)
+        error();
+
+    if(LMS_StartStream(&m_rx_streamId) != 0)
+        LOG_RADIO_ERROR("RX StartStream Error");
+    if(LMS_StartStream(&m_tx_streamId) != 0)
+        LOG_RADIO_ERROR("TX StartStream Error");
+}
+
+void LimeRadioThread::printRadioConfig()
+{
+    float_type rate, rf_rate;
+
+    LMS_GetSampleRate(m_lms_device, LMS_CH_RX, 0, &rate, &rf_rate );
+    LOG_RADIO_DEBUG("current RX host_samp_rate {} rf_samp_rate {}", rate, rf_rate);
+
+    LMS_GetSampleRate(m_lms_device, LMS_CH_TX, 0, &rate, &rf_rate );
+    LOG_RADIO_DEBUG("current TX host_samp_rate {} rf_samp_rate {}", rate, rf_rate);
+
 
 }

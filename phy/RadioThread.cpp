@@ -19,6 +19,7 @@ RadioThread::RadioThread() {
     terminated.store(false);
     stopping.store(false);
     m_isReceiverRunning.store(false);
+    m_isRX.store(true);                     // default is to run in RX mode
 }
 
 RadioThread::~RadioThread() {
@@ -90,7 +91,13 @@ bool RadioThread::isTerminated(int waitMs) {
 }
 
 
-void RadioThread::setFrequency(double frequency)
+void RadioThread::setFrequency(float_t frequency)
+{
+    // defined in radio specific class (e.g. LimeRadioThread)
+}
+
+
+void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
 {
     // defined in radio specific class (e.g. LimeRadioThread)
 }
@@ -116,4 +123,16 @@ ThreadIQDataQueueBasePtr RadioThread::getRXQueue() {
     std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
     LOG_RADIO_DEBUG("getRXQueue() ");
     return m_rx_queue;
+}
+
+void RadioThread::setTXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
+    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+    LOG_RADIO_DEBUG("setTXQueue()");
+    m_tx_queue = threadQueue;
+}
+
+ThreadIQDataQueueBasePtr RadioThread::getTXQueue() {
+    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+    LOG_RADIO_DEBUG("getTXQueue() ");
+    return m_tx_queue;
 }

@@ -13,6 +13,10 @@
 #include "util/log.h"
 
 
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
 // #####################################################
 // in ../build => g++ ../*.cpp ../phy/*.cpp -I.. -I../phy -I../external/spdlog/include -std=c++17 -pthread -lLimeSuite -L/usr/lib -o radio_test
 // use cmake now!!!
@@ -31,21 +35,38 @@ int main()
 
     LOG_TEST_INFO("SDR Radio test program");
 
-    RadioThread *sdr_rx;
+    // hack - read config file --> must go into a system config class
+    std::ifstream SystemConfigFile("SystemConfig.json");
+    json SystemConfig = json::parse(SystemConfigFile);
+    SystemConfigFile.close();
+
+    float_t cf_samp_rate = SystemConfig["Radio"]["SAMPLING_RATE"];
+    size_t cf_oversampling = SystemConfig["Radio"]["OVERSAMPLING"];
+    float_t cf_center_freq = SystemConfig["Radio"]["CENTER_FREQ"];
+
+    LOG_TEST_DEBUG("SystemConfig samprate {}", cf_samp_rate);
+    LOG_TEST_DEBUG("SystemConfig oversamp {}", cf_oversampling);
+    LOG_TEST_DEBUG("SystemConfig freq {}", cf_center_freq);
+
+
+
+    RadioThread *sdr;
     std::thread *t_sdr = nullptr;
 
     RadioThreadIQDataQueuePtr iqpipe_rx = std::make_shared<RadioThreadIQDataQueue>();
     iqpipe_rx->set_max_items(1000);
 
+    RadioThreadIQDataQueuePtr iqpipe_tx = std::make_shared<RadioThreadIQDataQueue>();
+    iqpipe_tx->set_max_items(1000);
 
-    sdr_rx = new LimeRadioThread;
 
-    sdr_rx->setRXQueue(iqpipe_rx);
-    
-    //sdr->setFrequency(52e6);
+    sdr = new LimeRadioThread;
+    sdr->setRXQueue(iqpipe_rx);
+    sdr->setFrequency(cf_center_freq);
+    sdr->setSamplingRate(cf_samp_rate, cf_oversampling);
 
     //Start RadioThread 
-    t_sdr = new std::thread(&RadioThread::threadMain, sdr_rx);
+    t_sdr = new std::thread(&RadioThread::threadMain, sdr);
 
     
     // sich an den thread anhängen bis dieser fertig ist
@@ -54,7 +75,7 @@ int main()
     //sdr->getIQData();
 
     LOG_TEST_INFO("wait for receiver");
-    while(!sdr_rx->isReceiverRunning()) {
+    while(!sdr->isReceiverRunning()) {
         std::cout << "x";
     }
     std::cout << std::endl;
@@ -84,18 +105,20 @@ int main()
         LOG_TEST_ERROR("cannot open /tmp/ramdisk/IQData.csv");
 
         LOG_TEST_ERROR("terminate thread and flush data");
-        sdr_rx->terminate();
-        while(!sdr_rx->isTerminated(100)) {
+        sdr->terminate();
+        while(!sdr->isTerminated(100)) {
             //flush the iq queue so that it does not overrun
             LOG_TEST_ERROR("wait to terminate");
         }
         LOG_TEST_ERROR("thread is terminated");
     } else {
 
+        // get the received IQ data via the queue which is attached to the SDR thread
+
         RadioThreadIQDataPtr iq;
         
         LOG_TEST_INFO("get data from queue and write to /tmp/ramdisk/IQData.csv ");
-        while(sdr_rx->isReceiverRunning()) {
+        while(sdr->isReceiverRunning()) {
 
             // get data from queue
             while(iqpipe_rx->pop(iq)) {
@@ -117,7 +140,8 @@ int main()
     }
 
     iqpipe_rx->flush();
-    delete(sdr_rx);
+    iqpipe_tx->flush();
+    delete(sdr);
 
     return 0;
 }
