@@ -36,6 +36,10 @@ set(WRAN_LIBRARIES
 set(JSON_Install OFF CACHE INTERNAL "")
 add_subdirectory("external/json")
 
+# cxxopts
+option(CXXOPTS_ENABLE_WARNINGS ON)
+add_subdirectory("external/cxxopts")
+
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
@@ -44,10 +48,6 @@ find_package(Threads REQUIRED)
 # create radio_test executable; used for testing sdr and phy topics at the moment
 add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
-target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json )
+target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
-
-#message(${WRAN_INCLUDES})
-#message(${WRAN_SOURCES})
-

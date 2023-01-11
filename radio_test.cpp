@@ -14,6 +14,7 @@
 
 
 #include <nlohmann/json.hpp>
+#include <cxxopts.hpp>
 
 using json = nlohmann::json;
 
@@ -27,11 +28,82 @@ using json = nlohmann::json;
 // program is currently writing data into CSV file for futher
 // analysis with octave
 
-int main()
+
+
+void write_csv_file(RadioThread* sdr, RadioThreadIQDataQueuePtr iqpipe_rx, std::string csv_file) {
+        
+    std::ofstream myfile(csv_file);
+
+    // error checking if file is there ... maybe a bit overkill for a test script :-)
+    if(!myfile.is_open()) {
+        LOG_TEST_ERROR("cannot open {}", csv_file);
+
+        LOG_TEST_ERROR("terminate thread and flush data");
+        sdr->terminate();
+        while(!sdr->isTerminated(100)) {
+            //flush the iq queue so that it does not overrun
+            LOG_TEST_ERROR("wait to terminate");
+        }
+        LOG_TEST_ERROR("thread is terminated");
+    } else {
+
+        // get the received IQ data via the queue which is attached to the SDR thread
+
+        RadioThreadIQDataPtr iq;
+        
+        LOG_TEST_INFO("get data from queue and write to /tmp/ramdisk/IQData.csv ");
+        while(sdr->isReceiverRunning()) {
+
+            // get data from queue
+            while(iqpipe_rx->pop(iq)) {
+
+                uint64_t t = iq->timestampFirstSample;
+
+                for(auto s: iq->data)
+                {
+                    if(myfile.is_open())
+                        myfile << s.real() << ", " << s.imag()<< ", " << t << std::endl;
+                    t++;
+                }
+
+            }
+
+        }
+        myfile.close();
+        LOG_TEST_INFO("done write to /tmp/ramdisk/IQData.csv ");
+    }
+
+}
+
+
+
+int main(int argc, const char* argv[])
 {
 
     // some generic system init must be implement which is setting up all the "utilities" stuff
+    // init logging for spdlog
     Log::Init();
+
+    // init cmdline parsing w/ cxxopts
+    cxxopts::Options options("radio_test", "Test PHY SDR RX / TX");
+
+    options
+      .set_width(70)
+      .add_options()
+      ("h,help", "Print help")
+      ("c,config", "Config file")
+      ("w", "write CSV file")
+    ;
+
+    auto result = options.parse(argc,argv);
+
+    if(result.count("help")) {
+        std::cout << options.help({""}) << std::endl;
+        exit(0);
+    }
+
+
+
 
     LOG_TEST_INFO("SDR Radio test program");
 
@@ -97,46 +169,11 @@ int main()
     // root@x:~# chmod 777 ramdisk/
     // root@x:~# mount -t tmpfs -o size=200M myramdisk /tmp/ramdisk/
 
-    std::ofstream myfile("/tmp/ramdisk/IQData.csv");
 
-
-    // error checking if file is there ... maybe a bit overkill for a test script :-)
-    if(!myfile.is_open()) {
-        LOG_TEST_ERROR("cannot open /tmp/ramdisk/IQData.csv");
-
-        LOG_TEST_ERROR("terminate thread and flush data");
-        sdr->terminate();
-        while(!sdr->isTerminated(100)) {
-            //flush the iq queue so that it does not overrun
-            LOG_TEST_ERROR("wait to terminate");
-        }
-        LOG_TEST_ERROR("thread is terminated");
+    if(result.count("w")) {
+        write_csv_file(sdr, iqpipe_rx,"/tmp/ramdisk/IQData.csv");
     } else {
-
-        // get the received IQ data via the queue which is attached to the SDR thread
-
-        RadioThreadIQDataPtr iq;
-        
-        LOG_TEST_INFO("get data from queue and write to /tmp/ramdisk/IQData.csv ");
-        while(sdr->isReceiverRunning()) {
-
-            // get data from queue
-            while(iqpipe_rx->pop(iq)) {
-
-                uint64_t t = iq->timestampFirstSample;
-
-                for(auto s: iq->data)
-                {
-                    if(myfile.is_open())
-                        myfile << s.real() << ", " << s.imag()<< ", " << t << std::endl;
-                    t++;
-                }
-
-            }
-
-        }
-        myfile.close();
-        LOG_TEST_INFO("done write to /tmp/ramdisk/IQData.csv ");
+        sdr->terminate();
     }
 
 /* 

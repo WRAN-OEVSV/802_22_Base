@@ -3,7 +3,8 @@
         "${default}", 
         "${workspaceRoot}", 
         "${workspaceRoot}/external/spdlog/include",
-        "${workspaceRoot}/external/json/include"
+        "${workspaceRoot}/external/json/include",
+        "${workspaceRoot}/external/cxxopts/include"
     ],
     "files.associations": {
         "thread": "cpp",
