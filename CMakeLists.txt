@@ -27,10 +27,19 @@ set(WRAN_INCLUDES
     "${PROJECT_SOURCE_DIR}/external/spdlog/include"
 )
 
-set(WRAN_LIBRARIES
-    "-L/usr/lib"
-    "-lLimeSuite"
-)
+#set(WRAN_LIBRARIES
+#    "-L/usr/lib"
+#    "-lLimeSuite"
+#)
+
+
+# LimeSuite
+set(ENABLE_EXAMPLES OFF)
+set(ENABLE_GUI OFF)
+set(ENABLE_OCTAVE OFF)
+set(ENABLE_SOAPY_LMS7 OFF)
+set(ENABLE_LIMERFE OFF)
+add_subdirectory("external/LimeSuite")
 
 # nlohmann json
 set(JSON_Install OFF CACHE INTERNAL "")
@@ -40,6 +49,7 @@ add_subdirectory("external/json")
 option(CXXOPTS_ENABLE_WARNINGS ON)
 add_subdirectory("external/cxxopts")
 
+# Threads
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
@@ -48,6 +58,7 @@ find_package(Threads REQUIRED)
 # create radio_test executable; used for testing sdr and phy topics at the moment
 add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
-target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+#target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
