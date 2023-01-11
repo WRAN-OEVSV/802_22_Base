@@ -93,6 +93,7 @@ int main(int argc, const char* argv[])
       ("h,help", "Print help")
       ("c,config", "Config file")
       ("w", "write CSV file")
+      ("l", "gpio test")
     ;
 
     auto result = options.parse(argc,argv);
@@ -176,17 +177,18 @@ int main(int argc, const char* argv[])
         sdr->terminate();
     }
 
-/* 
-    sdr->set_HW_TX_direct();
-    sleep(2);
-    sdr->set_HW_TX_6m();
-    sleep(2);
-    sdr->set_HW_TX_2m();
-    sleep(2);
-    sdr->set_HW_TX_70cm();
-    sleep(2);
-    sdr->set_HW_RX();
-  */
+    // test GPIOS w/ connected LED's
+    if(result.count("l")) {
+        sdr->set_HW_TX_direct();
+        sleep(2);
+        sdr->set_HW_TX_6m();
+        sleep(2);
+        sdr->set_HW_TX_2m();
+        sleep(2);
+        sdr->set_HW_TX_70cm();
+        sleep(2);
+        sdr->set_HW_RX();
+    }
 
     iqpipe_rx->flush();
     iqpipe_tx->flush();
