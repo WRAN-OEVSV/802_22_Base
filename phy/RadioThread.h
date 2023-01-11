@@ -236,6 +236,14 @@ public:
     // done via queues now
     // virtual void getIQData();
     // virtual void setIQData();
+
+
+    virtual void set_HW_RX();
+    virtual void set_HW_TX_direct();
+    virtual void set_HW_TX_6m();
+    virtual void set_HW_TX_2m();
+    virtual void set_HW_TX_70cm();
+
     
 protected:
     ThreadIQDataQueueBasePtr m_tx_queue;

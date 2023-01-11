@@ -91,14 +91,12 @@ bool RadioThread::isTerminated(int waitMs) {
 }
 
 
-void RadioThread::setFrequency(float_t frequency)
-{
+void RadioThread::setFrequency(float_t frequency) {
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
 
-void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
-{
+void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling) {
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
@@ -112,6 +110,21 @@ void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
 //     // defined in radio specific class (e.g. LimeRadioThread)
 // }
 
+void RadioThread::set_HW_RX() {
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
+void RadioThread::set_HW_TX_direct() {
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
+void RadioThread::set_HW_TX_6m() {
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
+void RadioThread::set_HW_TX_2m() {
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
+void RadioThread::set_HW_TX_70cm() {
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
 
 void RadioThread::setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
     std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);

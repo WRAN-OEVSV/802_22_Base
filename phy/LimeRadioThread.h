@@ -35,6 +35,12 @@ public:
     // void getIQData();
     // void setIQData();
 
+    void set_HW_RX();
+    void set_HW_TX_direct();
+    void set_HW_TX_6m();
+    void set_HW_TX_2m();
+    void set_HW_TX_70cm();
+
 private:
 
 
@@ -69,8 +75,19 @@ private:
 
     void printRadioConfig();
 
+    int initLimeGPIO();
+
     int error();
 
     
+    // Radio Frontend - Define GPIO settings for CM4 hat module
+    uint8_t m_setGPIORX = 0x00;       // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
+    uint8_t m_setGPIOTXDirect = 0x0F; // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
+    uint8_t m_setGPIOTX6m = 0x03;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
+    uint8_t m_setGPIOTX2m = 0x07;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
+    uint8_t m_setGPIOTX70cm = 0x0B;   // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
+
+    std::string m_modeName[9] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
+    uint8_t m_modeGPIO[9] = {m_setGPIORX, m_setGPIOTXDirect, m_setGPIOTX6m, m_setGPIOTX2m, m_setGPIOTX70cm};
 
 };

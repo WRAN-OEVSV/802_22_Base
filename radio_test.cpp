@@ -139,6 +139,18 @@ int main()
         LOG_TEST_INFO("done write to /tmp/ramdisk/IQData.csv ");
     }
 
+/* 
+    sdr->set_HW_TX_direct();
+    sleep(2);
+    sdr->set_HW_TX_6m();
+    sleep(2);
+    sdr->set_HW_TX_2m();
+    sleep(2);
+    sdr->set_HW_TX_70cm();
+    sleep(2);
+    sdr->set_HW_RX();
+  */
+
     iqpipe_rx->flush();
     iqpipe_tx->flush();
     delete(sdr);
