@@ -52,7 +52,7 @@ void write_csv_file(RadioThread* sdr, RadioThreadIQDataQueuePtr iqpipe_rx, std::
         RadioThreadIQDataPtr iq;
         
         LOG_TEST_INFO("get data from queue and write to /tmp/ramdisk/IQData.csv ");
-        while(sdr->isReceiverRunning()) {
+        while(sdr->isRxTxRunning()) {
 
             // get data from queue
             while(iqpipe_rx->pop(iq)) {
@@ -73,6 +73,21 @@ void write_csv_file(RadioThread* sdr, RadioThreadIQDataQueuePtr iqpipe_rx, std::
         LOG_TEST_INFO("done write to /tmp/ramdisk/IQData.csv ");
     }
 
+}
+
+
+void warta(RadioThread *r, int64_t t) {
+
+    // start to wait when RadioThread is collecting data
+    while(!r->isRxTxRunning()) {
+        std::cout << "x";
+    }
+
+    LOG_TEST_INFO("warta() for {} sec", t);
+    std::this_thread::sleep_for(std::chrono::seconds(t));
+
+    LOG_TEST_INFO("warta() done sleeping");
+    r->stop();
 }
 
 
@@ -135,20 +150,21 @@ int main(int argc, const char* argv[])
 
     sdr = new LimeRadioThread;
     sdr->setRXQueue(iqpipe_rx);
+    sdr->setTXQueue(iqpipe_tx);
     sdr->setFrequency(cf_center_freq);
     sdr->setSamplingRate(cf_samp_rate, cf_oversampling);
 
     //Start RadioThread 
     t_sdr = new std::thread(&RadioThread::threadMain, sdr);
 
+    //wait for waitTime seconds and then stop the sdr thread to limit the amount
+    //of data collected
+    uint64_t waitTime = 2;
+    std::thread w1(warta,sdr, waitTime);
     
-    // sich an den thread anhängen bis dieser fertig ist
-    // t_sdr->join();
-
-    //sdr->getIQData();
-
+ 
     LOG_TEST_INFO("wait for receiver");
-    while(!sdr->isReceiverRunning()) {
+    while(!sdr->isRxTxRunning()) {
         std::cout << "x";
     }
     std::cout << std::endl;
@@ -156,7 +172,6 @@ int main(int argc, const char* argv[])
 
     // as soon as receiver is running and is getting data it can be taken from the iqpiperx queue by some other process
     // process must be able to cope up with data so that queue is not overrunning .. otherwise samples are lost .. 
-
     // for the phy a 802.22 frame is approx 23k samples for our setup 
 
     // schleep a bit ..
@@ -165,34 +180,41 @@ int main(int argc, const char* argv[])
     std::cout << std::endl;
 
 
-    // write data for debug to ramdisk - anyways disk is even with ram very slow ...
+    // write data for debug to ramdisk (cmdline -w option) - anyways  is even with ram very slow ...
     // root@x:~# mkdir /tmp/ramdisk
     // root@x:~# chmod 777 ramdisk/
     // root@x:~# mount -t tmpfs -o size=200M myramdisk /tmp/ramdisk/
-
-
     if(result.count("w")) {
         write_csv_file(sdr, iqpipe_rx,"/tmp/ramdisk/IQData.csv");
     } else {
-        sdr->terminate();
+        sdr->stop();
     }
 
-    // test GPIOS w/ connected LED's
+    // test GPIOS w/ connected LED's /w cmdline -l option
     if(result.count("l")) {
-        sdr->set_HW_TX_direct();
+
+        sdr->set_HW_RX();
         sleep(2);
-        sdr->set_HW_TX_6m();
+        sdr->set_HW_TX(RadioThread::TxMode::TX_DIRECT);
         sleep(2);
-        sdr->set_HW_TX_2m();
+        sdr->set_HW_TX(RadioThread::TxMode::TX_6M);
         sleep(2);
-        sdr->set_HW_TX_70cm();
+        sdr->set_HW_TX(RadioThread::TxMode::TX_2M);
+        sleep(2);
+        sdr->set_HW_TX(RadioThread::TxMode::TX_70CM);
         sleep(2);
         sdr->set_HW_RX();
+        sleep(2);
     }
+
+
 
     iqpipe_rx->flush();
     iqpipe_tx->flush();
     delete(sdr);
+
+    // join waiting thread so that it stops properly
+    w1.join();
 
     return 0;
 }

@@ -37,40 +37,36 @@ LimeRadioThread::~LimeRadioThread() {
 
 
 /**
- * @brief run() is (currently only) getting the data from the Lime - a quick hack for the start
+ * @brief run() is receiving and sending the data via the Lime - a quick hack for the start
  * 
- * @todo move receive stuff to own function and add RX/TX case; thread either runs as RX or TX
+ * @todo move RX/TX stuff to own function ; thread either runs as RX or TX
  * 
  */
 void LimeRadioThread::run() {
 
-
     LOG_RADIO_INFO("SDR thread starting.");
 
-    m_isReceiverRunning.store(true);
-
-    auto t1 = std::chrono::high_resolution_clock::now();
+    m_isRxTxRunning.store(true);
 
     m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
+    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getTXQueue());
 
-    LOG_RADIO_DEBUG("run() stream handle {}", m_rx_streamId.handle);
-    LOG_RADIO_TRACE("run() m_rxIQbuffer {}", m_rxIQbuffer);
-
-    LOG_RADIO_TRACE("run() m_IQdataRXQueue {}", m_IQdataRXQueue.use_count());
+    LOG_RADIO_DEBUG("run() rx stream handle {}", m_rx_streamId.handle);
+    LOG_RADIO_DEBUG("run() m_rxIQbuffer {}", m_rxIQbuffer);
+    LOG_RADIO_DEBUG("run() m_IQdataRXQueue {}", m_IQdataRXQueue.use_count());
+    LOG_RADIO_DEBUG("run() tx stream handle {}", m_tx_streamId.handle);
+    LOG_RADIO_DEBUG("run() m_txIQbuffer {}", m_txIQbuffer);
+    LOG_RADIO_DEBUG("run() m_IQdataTXQueue {}", m_IQdataTXQueue.use_count());
 
     printRadioConfig();
 
-    int sec_aquis = 2;
     double samplesTotalRX = 0;
+    double samplesTotalTX = 0;
  
-    LOG_RADIO_TRACE("SDR thread run for {} sec",sec_aquis);
-
-    // run for sec_aquis seconds or thread gets terminated (stopping -> true)
-    while((std::chrono::high_resolution_clock::now() - t1 < std::chrono::seconds(sec_aquis)) && !stopping)
+    // run until thread gets terminated, or stopped (stopping -> true)
+    while(!stopping)
     {
-
         if(m_isRX) {
-            // SDR is running in RX mode
 
             //Receive samples
             int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
@@ -79,8 +75,7 @@ void LimeRadioThread::run() {
             float *pp = (float *)m_rxIQbuffer;
             liquid_float_complex s;
 
-
-            // @tcheck  suboptimal ?? as it creates a new object for every fetch .. 
+            // @tcheck  suboptimal ??  
             m_rxIQdataOut = std::make_shared<RadioThreadIQData>();
 
             m_rxIQdataOut->timestampFirstSample = m_rx_metadata.timestamp;
@@ -104,14 +99,46 @@ void LimeRadioThread::run() {
             samplesTotalRX += samplesRead;
 
         } else {
-            // sdr running in TX mode
+
+            // Transmit Samples
+
+            // @tcheck  suboptimal ??  
+            m_txIQdataOut = std::make_shared<RadioThreadIQData>();
+
+            // get queue item
+            if(m_IQdataTXQueue->pop(m_txIQdataOut)) {
+
+                int samplesWrite = m_txIQdataOut->data.size();
+
+                //I and Q samples are interleaved in buffer: IQIQIQ...
+                float *pp = (float *)m_txIQbuffer;
+                liquid_float_complex s;
+
+                if(samplesWrite > 0)
+                {
+
+                    for (int i = 0; i < samplesWrite; i++) {
+
+                        s = m_rxIQdataOut->data.front();
+                        pp[2 * i] = s.real();
+                        pp[2 * i + 1] = s.imag();
+
+                        m_rxIQdataOut->data.pop_front();
+                    }
+
+                    //Send samples with delay from RX (waitForTimestamp is enabled)
+                    m_tx_metadata.timestamp = m_txIQdataOut->timestampFirstSample;
+                    LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, &m_tx_metadata, 500);
+
+                    samplesTotalTX += samplesWrite;
+                }
+            }
         }
-
-
     }
 
-    m_isReceiverRunning.store(false);
-    LOG_RADIO_TRACE("Total Samples RX {}", samplesTotalRX);
+    m_isRxTxRunning.store(false);
+    LOG_RADIO_DEBUG("Total Samples RX {}", samplesTotalRX);
+    LOG_RADIO_DEBUG("Total Samples TX {}", samplesTotalTX);
     LOG_RADIO_INFO("SDR thread done.");
 
 }
@@ -394,7 +421,7 @@ uint8_t modeGPIO[9] = {setRX, setTXDirect, setTX6m, setTX2m, setTX70cm};
  */
 void LimeRadioThread::set_HW_RX() {
 
-    LOG_RADIO_DEBUG("set_HW_RX() called");
+    LOG_RADIO_TRACE("set_HW_RX() called");
 
     // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
     // Set GPIOs to RX mode
@@ -410,23 +437,72 @@ void LimeRadioThread::set_HW_RX() {
         error();
     }
 
-    LOG_RADIO_DEBUG("set_HW_RX() gpio readback {0:x}", gpio_val);
+    LOG_RADIO_TRACE("set_HW_RX() gpio readback {0:x}", gpio_val);
 
 };
 
 /**
- * @brief Set GPIO for TX direct no bandfilter
- * @brief GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
+ * @brief set TX mode based on RadioThread::TxMode::<mode>
+ * 
+ * @param m TxMode enum
  */
-void LimeRadioThread::set_HW_TX_direct() {
+void LimeRadioThread::set_HW_TX(TxMode m) {
 
-    LOG_RADIO_DEBUG("set_HW_TX_direct() called");
-    
-    // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
+    // TX_DIRECT=1,
+    // TX_6M,
+    // TX_2M,
+    // TX_70cm
+
+
     // Set GPIOs to TX mode
-    if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[1], 1) != 0)
+    switch (m)
     {
-        error();
+    case 1: // DIRECT
+
+        LOG_RADIO_TRACE("set_HW_TX() TX_DIRECT");
+        
+        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter    
+        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
+        {
+            error();
+        }
+
+        break;
+
+    case 2: // TX_6M
+        LOG_RADIO_TRACE("set_HW_TX() TX_6M");
+        
+        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
+        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
+        {
+            error();
+        }
+
+        break;
+    case 3: // TX_2M
+        LOG_RADIO_TRACE("set_HW_TX() TX_2M");
+        
+        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
+        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
+        {
+            error();
+        }
+
+        break;
+    case 4: // TX_70cm
+        LOG_RADIO_TRACE("set_HW_TX() TX_70cm");
+        
+        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
+        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
+        {
+            error();
+        }
+
+        break;
+
+    default:
+        LOG_RADIO_ERROR("set_HW_TX() unkown TX Mode");
+        break;
     }
 
     uint8_t gpio_val = 0;
@@ -436,68 +512,5 @@ void LimeRadioThread::set_HW_TX_direct() {
         error();
     }
 
-    LOG_RADIO_DEBUG("set_HW_TX_direct() gpio readback {0:x}", gpio_val);
-};
-
-void LimeRadioThread::set_HW_TX_6m() {
-
-    LOG_RADIO_DEBUG("set_HW_TX_6m() called");
-    
-    // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-    // Set GPIOs to TX mode
-    if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[2], 1) != 0)
-    {
-        error();
-    }
-
-    uint8_t gpio_val = 0;
-    // Read and log GPIO values
-    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
-    {
-        error();
-    }
-
-    LOG_RADIO_DEBUG("set_HW_TX_6m() gpio readback {0:x}", gpio_val);
-};
-
-void LimeRadioThread::set_HW_TX_2m() {
-
-    LOG_RADIO_DEBUG("set_HW_TX_2m() called");
-    
-    // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
-    // Set GPIOs to TX mode
-    if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[3], 1) != 0)
-    {
-        error();
-    }
-
-    uint8_t gpio_val = 0;
-    // Read and log GPIO values
-    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
-    {
-        error();
-    }
-
-    LOG_RADIO_DEBUG("set_HW_TX_2m() gpio readback {0:x}", gpio_val);
-};
-
-void LimeRadioThread::set_HW_TX_70cm() {
-
-    LOG_RADIO_DEBUG("set_HW_TX_70cm() called");
-    
-    // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
-    // Set GPIOs to TX mode
-    if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[4], 1) != 0)
-    {
-        error();
-    }
-
-    uint8_t gpio_val = 0;
-    // Read and log GPIO values
-    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
-    {
-        error();
-    }
-
-    LOG_RADIO_DEBUG("set_HW_TX_70cm() gpio readback {0:x}", gpio_val);
+    LOG_RADIO_TRACE("set_HW_TX() gpio readback {0:x}", gpio_val);
 };

@@ -18,7 +18,7 @@ RadioThread::RadioThread() {
     LOG_RADIO_DEBUG("RadioThread() constructor");
     terminated.store(false);
     stopping.store(false);
-    m_isReceiverRunning.store(false);
+    m_isRxTxRunning.store(false);
     m_isRX.store(true);                     // default is to run in RX mode
 }
 
@@ -56,6 +56,11 @@ void RadioThread::run() {
 void RadioThread::terminate() {
     stopping.store(true);
 }
+
+void RadioThread::stop() {
+    stopping.store(true);
+}
+
 
 bool RadioThread::isTerminated(int waitMs) {
 
@@ -113,16 +118,7 @@ void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling) {
 void RadioThread::set_HW_RX() {
     // defined in radio specific class (e.g. LimeRadioThread)
 };
-void RadioThread::set_HW_TX_direct() {
-    // defined in radio specific class (e.g. LimeRadioThread)
-};
-void RadioThread::set_HW_TX_6m() {
-    // defined in radio specific class (e.g. LimeRadioThread)
-};
-void RadioThread::set_HW_TX_2m() {
-    // defined in radio specific class (e.g. LimeRadioThread)
-};
-void RadioThread::set_HW_TX_70cm() {
+void RadioThread::set_HW_TX(TxMode m) {
     // defined in radio specific class (e.g. LimeRadioThread)
 };
 

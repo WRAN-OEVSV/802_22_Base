@@ -66,7 +66,7 @@ public:
 
     uint64_t timestampFirstSample;
 
-    std::vector<liquid_float_complex> data;   //std::complex<float>
+    std::deque<liquid_float_complex> data;   //std::complex<float>
 
     RadioThreadIQData() :
             frequency(DEFAULT_CENTER_FREQ), sampleRate(DEFAULT_SAMPLE_RATE), timestampFirstSample(0) {
@@ -186,6 +186,11 @@ public:
     //Request for termination (asynchronous)
     virtual void terminate();
 
+    //Request for graceful stop (asynchronous)
+    virtual void stop();
+
+
+
     //Returns true if the thread is indeed terminated, i.e the run() method has returned. 
     bool isTerminated(int waitMs = 0);
 
@@ -203,8 +208,8 @@ public:
      * @return true 
      * @return false 
      */
-    bool isReceiverRunning() {
-        return m_isReceiverRunning.load();
+    bool isRxTxRunning() {
+        return m_isRxTxRunning.load();
     }
 
     void setRxOn() {
@@ -237,12 +242,27 @@ public:
     // virtual void getIQData();
     // virtual void setIQData();
 
+    //Transmit modes
+    typedef enum
+    {
+        TX_DIRECT=1,
+        TX_6M,
+        TX_2M,
+        TX_70CM
+    } TxMode;
 
+    /**
+     * @brief set HW GPIO for RX
+     * 
+     */
     virtual void set_HW_RX();
-    virtual void set_HW_TX_direct();
-    virtual void set_HW_TX_6m();
-    virtual void set_HW_TX_2m();
-    virtual void set_HW_TX_70cm();
+
+    /**
+     * @brief set HW GPIO for TX
+     * 
+     * @param m mode based on RadioThread::TxMode enum
+     */
+    virtual void set_HW_TX(TxMode m);
 
     
 protected:
@@ -253,7 +273,7 @@ protected:
 
     std::atomic_bool stopping;
 
-    std::atomic_bool m_isReceiverRunning;
+    std::atomic_bool m_isRxTxRunning;
 
     /**
      * @brief m_isRX is true when the RadioThread is in RX mode; if false the thread is running in TX

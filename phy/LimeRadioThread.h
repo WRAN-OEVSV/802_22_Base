@@ -36,10 +36,7 @@ public:
     // void setIQData();
 
     void set_HW_RX();
-    void set_HW_TX_direct();
-    void set_HW_TX_6m();
-    void set_HW_TX_2m();
-    void set_HW_TX_70cm();
+    void set_HW_TX(TxMode m);
 
 private:
 
