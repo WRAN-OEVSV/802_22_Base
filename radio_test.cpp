@@ -194,17 +194,32 @@ int main(int argc, const char* argv[])
     if(result.count("l")) {
 
         sdr->set_HW_RX();
-        sleep(2);
+        sleep(1);
         sdr->set_HW_TX(RadioThread::TxMode::TX_DIRECT);
-        sleep(2);
+        sleep(1);
         sdr->set_HW_TX(RadioThread::TxMode::TX_6M);
-        sleep(2);
+        sleep(1);
         sdr->set_HW_TX(RadioThread::TxMode::TX_2M);
-        sleep(2);
+        sleep(1);
         sdr->set_HW_TX(RadioThread::TxMode::TX_70CM);
-        sleep(2);
+        sleep(1);
         sdr->set_HW_RX();
-        sleep(2);
+        sleep(1);
+        sdr->set_HW_TX();
+        sleep(1);
+        sdr->set_HW_TX_mode(RadioThread::TxMode::TX_6M);
+        sdr->set_HW_TX();
+        sleep(1);
+        sdr->set_HW_TX_mode(RadioThread::TxMode::TX_2M);
+        sdr->set_HW_TX();
+        sleep(1);
+        sdr->set_HW_TX_mode(RadioThread::TxMode::TX_70CM);
+        sdr->set_HW_TX();
+        sleep(1);
+        sdr->set_HW_TX_mode(RadioThread::TxMode::TX_DIRECT);
+        sdr->set_HW_TX();
+        sleep(1);
+        sdr->set_HW_RX();
     }
 
 

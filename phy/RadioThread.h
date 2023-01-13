@@ -258,11 +258,20 @@ public:
     virtual void set_HW_RX();
 
     /**
+     * @brief set HW GPIO for TX - used m_TxMode set via set_HW_TX_mode
+     * 
+     */
+    virtual void set_HW_TX() { set_HW_TX(m_TxMode); };
+
+    /**
      * @brief set HW GPIO for TX
      * 
      * @param m mode based on RadioThread::TxMode enum
      */
     virtual void set_HW_TX(TxMode m);
+
+    virtual void set_HW_TX_mode(TxMode m) { m_TxMode = m; };
+
 
     
 protected:
@@ -284,6 +293,8 @@ protected:
 private:
     //true when the thread has really ended, i.e run() from threadMain() has returned.
     std::atomic_bool terminated;
+
+    TxMode  m_TxMode = TxMode::TX_DIRECT;
 
 };
 

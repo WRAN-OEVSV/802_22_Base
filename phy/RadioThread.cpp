@@ -118,9 +118,11 @@ void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling) {
 void RadioThread::set_HW_RX() {
     // defined in radio specific class (e.g. LimeRadioThread)
 };
+
 void RadioThread::set_HW_TX(TxMode m) {
     // defined in radio specific class (e.g. LimeRadioThread)
 };
+
 
 void RadioThread::setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
     std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
