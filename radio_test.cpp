@@ -137,32 +137,38 @@ int main(int argc, const char* argv[])
     LOG_TEST_DEBUG("SystemConfig freq {}", cf_center_freq);
 
 
-
+    // create SDR object
     RadioThread *sdr;
-    std::thread *t_sdr = nullptr;
 
+    // create RX and TX queues to communicate with the SDR object
     RadioThreadIQDataQueuePtr iqpipe_rx = std::make_shared<RadioThreadIQDataQueue>();
     iqpipe_rx->set_max_items(1000);
 
     RadioThreadIQDataQueuePtr iqpipe_tx = std::make_shared<RadioThreadIQDataQueue>();
     iqpipe_tx->set_max_items(1000);
 
-
-    sdr = new LimeRadioThread;
+    // init SDR
+//    sdr = new LimeRadioThread(4500);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
+    sdr = new LimeRadioThread();  // default is defined via DEFAULT_SAMPLEBUFFERCNT
     sdr->setRXQueue(iqpipe_rx);
     sdr->setTXQueue(iqpipe_tx);
     sdr->setFrequency(cf_center_freq);
     sdr->setSamplingRate(cf_samp_rate, cf_oversampling);
 
-    //Start RadioThread 
+
+    // create SDR Thread
+    std::thread *t_sdr = nullptr;
+
+    //Start RadioThread this is also starting the RX and TX streams
     t_sdr = new std::thread(&RadioThread::threadMain, sdr);
 
     //wait for waitTime seconds and then stop the sdr thread to limit the amount
-    //of data collected
+    //of data collected for testing
     uint64_t waitTime = 2;
     std::thread w1(warta,sdr, waitTime);
     
  
+    // wait until the thread started the run() which is handling the RX/TX comm to the sdr
     LOG_TEST_INFO("wait for receiver");
     while(!sdr->isRxTxRunning()) {
         std::cout << "x";

@@ -25,6 +25,7 @@ public:
     
 
     LimeRadioThread();
+    LimeRadioThread(int sampleBufferCnt);
     ~LimeRadioThread();
 
     void run() override;
@@ -49,14 +50,14 @@ private:
 
 
     //data buffers for RX
-    const int m_rxSampleCnt = 5000; //complex samples per buffer
+    const int m_rxSampleCnt; //complex samples per buffer is set via constructor
     void *m_rxIQbuffer  { nullptr };
 
     RadioThreadIQDataQueuePtr m_IQdataRXQueue; // = std::make_shared<RadioThreadIQDataQueue>();
     RadioThreadIQDataPtr m_rxIQdataOut;
     
     //data buffers for TX
-    const int m_txSampleCnt = 5000; //complex samples per buffer
+    const int m_txSampleCnt; //complex samples per buffer is set via constructor
     void *m_txIQbuffer  { nullptr };
 
     RadioThreadIQDataQueuePtr m_IQdataTXQueue; // = std::make_shared<RadioThreadIQDataQueue>();

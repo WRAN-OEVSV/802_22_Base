@@ -14,9 +14,23 @@
 //////////////////////////
 /// LimeRadioThread stuff
 
-LimeRadioThread::LimeRadioThread() : RadioThread() {
+LimeRadioThread::LimeRadioThread() 
+    : RadioThread(), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}  {
 
-    LOG_RADIO_TRACE("LimeRadioThread constructor");
+    LOG_RADIO_TRACE("LimeRadioThread() constructor");
+
+    initLimeSDR();
+
+    initLimeGPIO();
+    set_HW_RX();
+
+    initStreaming();
+}
+
+LimeRadioThread::LimeRadioThread(int sampleBufferCnt) 
+    : RadioThread(sampleBufferCnt), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}  {
+
+    LOG_RADIO_TRACE("LimeRadioThread(int) constructor");
 
     initLimeSDR();
 
@@ -257,7 +271,7 @@ void LimeRadioThread::initStreaming() {
     }
     m_rxIQbuffer = std::malloc(m_rxSampleCnt * 4 * sizeof(float));
 
-    
+    LOG_RADIO_TRACE("initStreaming() rxSampleCnt {}", m_rxSampleCnt);    
     LOG_RADIO_TRACE("initStreaming() m_rxIQbuffer {}",m_rxIQbuffer);
     LOG_RADIO_TRACE("initStreaming() size m_rxIQbuffer {}", m_rxSampleCnt * 4 * sizeof(int16_t));
 
@@ -291,6 +305,7 @@ void LimeRadioThread::initStreaming() {
     m_txIQbuffer = std::malloc(m_txSampleCnt * 4 * sizeof(float));
 
     
+    LOG_RADIO_TRACE("initStreaming() txSampleCnt {}", m_txSampleCnt);    
     LOG_RADIO_TRACE("initStreaming() m_txIQbuffer {}",m_txIQbuffer);
     LOG_RADIO_TRACE("initStreaming() size m_txIQbuffer {}", m_txSampleCnt * 4 * sizeof(int16_t));
 

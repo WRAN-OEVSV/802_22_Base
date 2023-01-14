@@ -175,6 +175,7 @@ typedef std::shared_ptr<RadioThreadIQDataQueue> RadioThreadIQDataQueuePtr;
 class RadioThread {
 public:
     RadioThread();
+    RadioThread(int sampleBufferCnt);
     virtual ~RadioThread();
 
     //the thread Main call back itself
@@ -290,11 +291,16 @@ protected:
      */
     std::atomic_bool m_isRX;
 
+    int m_sampleBufferCnt;
+
 private:
     //true when the thread has really ended, i.e run() from threadMain() has returned.
     std::atomic_bool terminated;
 
     TxMode  m_TxMode = TxMode::TX_DIRECT;
+
+
+    
 
 };
 

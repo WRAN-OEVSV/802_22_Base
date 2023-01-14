@@ -14,13 +14,24 @@
 
 #define SPIN_WAIT_SLEEP_MS 5
 
-RadioThread::RadioThread() {
+RadioThread::RadioThread() : m_sampleBufferCnt{DEFAULT_SAMPLEBUFFERCNT} {
     LOG_RADIO_DEBUG("RadioThread() constructor");
     terminated.store(false);
     stopping.store(false);
     m_isRxTxRunning.store(false);
     m_isRX.store(true);                     // default is to run in RX mode
 }
+
+
+RadioThread::RadioThread(int sampleBufferCnt) : m_sampleBufferCnt{sampleBufferCnt} {
+    LOG_RADIO_DEBUG("RadioThread() constructor");
+    terminated.store(false);
+    stopping.store(false);
+    m_isRxTxRunning.store(false);
+    m_isRX.store(true);                     // default is to run in RX mode
+}
+
+
 
 RadioThread::~RadioThread() {
     LOG_RADIO_DEBUG("RadioThread() de-constructor");
