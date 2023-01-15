@@ -33,12 +33,12 @@ public:
     }
 
     //the thread Main call back itself
-    virtual void threadMain();
+    void threadMain();
 
-    virtual void run();
+    void run();
 
     //Request for termination (asynchronous)
-    virtual void terminate();
+    void terminate();
 
 
     void setQueue(const ThreadIQDataQueueBasePtr& threadQueue);
