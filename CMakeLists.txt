@@ -14,6 +14,11 @@ set(CMAKE_CXX_STANDARD           17 )
 set(CMAKE_CXX_STANDARD_REQUIRED  ON )
 set(CMAKE_CXX_EXTENSIONS         OFF)
 
+#optimizing must be looked at in more details - especially what is helping on complex math and fft
+add_definitions(-march=native)
+add_definitions(-mfpmath=sse)
+
+
 set(WRAN_SOURCES
     "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp" 
     "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp" 
