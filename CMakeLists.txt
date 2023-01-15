@@ -18,6 +18,9 @@ set(WRAN_SOURCES
     "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp" 
     "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp" 
     "${PROJECT_SOURCE_DIR}/util/log.cpp"
+    "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
+    "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
+    "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
 )
 
 set(WRAN_INCLUDES
@@ -25,11 +28,11 @@ set(WRAN_INCLUDES
     "${PROJECT_SOURCE_DIR}/phy"
     "${PROJECT_SOURCE_DIR}/util"
     "${PROJECT_SOURCE_DIR}/external/spdlog/include"
+    "${PROJECT_SOURCE_DIR}/external/liquid-dsp/include"
 )
 
 #set(WRAN_LIBRARIES
-#    "-L/usr/lib"
-#    "-lLimeSuite"
+#    "liquid"
 #)
 
 
@@ -58,7 +61,7 @@ find_package(Threads REQUIRED)
 # create radio_test executable; used for testing sdr and phy topics at the moment
 add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
-#target_link_libraries(radio_test ${WRAN_LIBRARIES} Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
-target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+target_link_libraries(radio_test liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+#target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)

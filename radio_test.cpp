@@ -11,6 +11,8 @@
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
 #include "util/log.h"
+#include "util/ws_spectrogram.h"
+#include "util/write_csv_file.h"
 
 
 #include <nlohmann/json.hpp>
@@ -27,53 +29,6 @@ using json = nlohmann::json;
 
 // program is currently writing data into CSV file for futher
 // analysis with octave
-
-
-
-void write_csv_file(RadioThread* sdr, RadioThreadIQDataQueuePtr iqpipe_rx, std::string csv_file) {
-        
-    std::ofstream myfile(csv_file);
-
-    // error checking if file is there ... maybe a bit overkill for a test script :-)
-    if(!myfile.is_open()) {
-        LOG_TEST_ERROR("cannot open {}", csv_file);
-
-        LOG_TEST_ERROR("terminate thread and flush data");
-        sdr->terminate();
-        while(!sdr->isTerminated(100)) {
-            //flush the iq queue so that it does not overrun
-            LOG_TEST_ERROR("wait to terminate");
-        }
-        LOG_TEST_ERROR("thread is terminated");
-    } else {
-
-        // get the received IQ data via the queue which is attached to the SDR thread
-
-        RadioThreadIQDataPtr iq;
-        
-        LOG_TEST_INFO("get data from queue and write to /tmp/ramdisk/IQData.csv ");
-        while(sdr->isRxTxRunning()) {
-
-            // get data from queue
-            while(iqpipe_rx->pop(iq)) {
-
-                uint64_t t = iq->timestampFirstSample;
-
-                for(auto s: iq->data)
-                {
-                    if(myfile.is_open())
-                        myfile << s.real() << ", " << s.imag()<< ", " << t << std::endl;
-                    t++;
-                }
-
-            }
-
-        }
-        myfile.close();
-        LOG_TEST_INFO("done write to /tmp/ramdisk/IQData.csv ");
-    }
-
-}
 
 
 void warta(RadioThread *r, int64_t t) {
@@ -108,6 +63,7 @@ int main(int argc, const char* argv[])
       ("h,help", "Print help")
       ("c,config", "Config file")
       ("w", "write CSV file")
+      ("s", "ascii spectrogram")
       ("l", "gpio test")
     ;
 
@@ -117,8 +73,6 @@ int main(int argc, const char* argv[])
         std::cout << options.help({""}) << std::endl;
         exit(0);
     }
-
-
 
 
     LOG_TEST_INFO("SDR Radio test program");
@@ -148,8 +102,8 @@ int main(int argc, const char* argv[])
     iqpipe_tx->set_max_items(1000);
 
     // init SDR
-//    sdr = new LimeRadioThread(4500);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
-    sdr = new LimeRadioThread();  // default is defined via DEFAULT_SAMPLEBUFFERCNT
+//    sdr = new LimeRadioThread();  // default is defined via DEFAULT_SAMPLEBUFFERCNT
+    sdr = new LimeRadioThread(1048);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
     sdr->setRXQueue(iqpipe_rx);
     sdr->setTXQueue(iqpipe_tx);
     sdr->setFrequency(cf_center_freq);
@@ -164,7 +118,7 @@ int main(int argc, const char* argv[])
 
     //wait for waitTime seconds and then stop the sdr thread to limit the amount
     //of data collected for testing
-    uint64_t waitTime = 2;
+    uint64_t waitTime = 3*60;
     std::thread w1(warta,sdr, waitTime);
     
  
@@ -190,11 +144,41 @@ int main(int argc, const char* argv[])
     // root@x:~# mkdir /tmp/ramdisk
     // root@x:~# chmod 777 ramdisk/
     // root@x:~# mount -t tmpfs -o size=200M myramdisk /tmp/ramdisk/
+
+    bool stop = true;
+
     if(result.count("w")) {
         write_csv_file(sdr, iqpipe_rx,"/tmp/ramdisk/IQData.csv");
-    } else {
-        sdr->stop();
+        stop = false;
     }
+    
+    if(result.count("s")) {
+
+        wsSpectrogram *wsspec;
+        wsspec = new wsSpectrogram(9123);
+        wsspec->setQueue(iqpipe_rx);
+
+        // create Thread
+        std::thread *t_wsspec = nullptr;
+
+        //Start Thread
+        t_wsspec = new std::thread(&wsSpectrogram::threadMain, wsspec);
+
+
+        while(!wsspec->isWsRunning()) {
+            std::cout << "w";
+        }
+
+    
+        // delete(wsspec);
+
+        stop = false;
+    } 
+
+    if(stop)
+        sdr->stop();
+
+
 
     // test GPIOS w/ connected LED's /w cmdline -l option
     if(result.count("l")) {
@@ -229,13 +213,14 @@ int main(int argc, const char* argv[])
     }
 
 
+    // join waiting thread so that it stops properly
+    w1.join();
 
     iqpipe_rx->flush();
     iqpipe_tx->flush();
     delete(sdr);
 
-    // join waiting thread so that it stops properly
-    w1.join();
+
 
     return 0;
 }

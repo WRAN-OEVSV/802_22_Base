@@ -1,9 +1,11 @@
 {
     "C_Cpp.default.includePath": [
+        "/usr/include",
         "${default}", 
         "${workspaceRoot}", 
         "${workspaceRoot}/external/spdlog/include",
         "${workspaceRoot}/external/json/include",
+        "${workspaceRoot}/external/liquid-dsp/include",
         "${workspaceRoot}/external/cxxopts/include"
     ],
     "files.associations": {
