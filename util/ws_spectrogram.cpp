@@ -66,13 +66,12 @@ void wsSpectrogram::run() {
     // options
     unsigned int nfft        =  512;    // transform size
 
-
-
     unsigned int i;
     unsigned int n;
 
     while(!stopping)
     {
+
         //poll the websocket .. this would normally be done by WebSocketServer::run()
         WebSocketServer::wait(-1);  //hack ?? timeout = 0 does not work is blocking
 
@@ -100,7 +99,7 @@ void wsSpectrogram::run() {
             }
             if(m_socketsOn) {
     
-                std::lock_guard < std::mutex > lock(m_onSockets_mutex);
+                std::lock_guard < std::mutex > lock(m_onSockets_mutex);           
 
                 float sp_psd[nfft];
 

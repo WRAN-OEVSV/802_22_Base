@@ -49,17 +49,22 @@ static int callback_main(   struct lws *wsi,
 
         case LWS_CALLBACK_SERVER_WRITEABLE:
             fd = lws_get_socket_fd( wsi );
+
             while( !self->connections[fd]->buffer.empty( ) )
             {
                 const char * message = self->connections[fd]->buffer.front( );
                 int msgLen = strlen(message);
                 int charsSent = lws_write( wsi, (unsigned char *)message, msgLen, LWS_WRITE_TEXT );
-                if( charsSent < msgLen )
+                if( charsSent < msgLen ) {
+                    std::cout << "check check " << fd << " " << self->connections[fd]->buffer.size() << std::endl;
                     self->onErrorWrapper( fd, string( "Error writing to socket" ) );
+                    break;  // added as there is a bug when the fd is remove on error and the while is still running
+                }
                 else
                     // Only pop the message if it was sent successfully.
                     self->connections[fd]->buffer.pop_front( );
             }
+
             lws_callback_on_writable( wsi );
             break;
 
@@ -211,5 +216,5 @@ void WebSocketServer::_removeConnection( int socketID )
 {
     Connection* c = this->connections[ socketID ];
     this->connections.erase( socketID );
-    delete(c);
+    delete c;
 }
