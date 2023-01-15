@@ -6,17 +6,19 @@
 #include <fstream> 
 #include <complex>
 
-#include "phy/RadioThread.h"
-#include "phy/LimeRadioThread.h"
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
 #include "util/log.h"
 #include "util/ws_spectrogram.h"
 #include "util/write_csv_file.h"
 
-
 #include <nlohmann/json.hpp>
 #include <cxxopts.hpp>
+
+#include "phy/RadioThread.h"
+#include "phy/LimeRadioThread.h"
+#include "phy/PhyThread.h"
+
 
 using json = nlohmann::json;
 
@@ -43,6 +45,8 @@ void warta(RadioThread *r, int64_t t) {
 
     LOG_TEST_INFO("warta() done sleeping");
     r->stop();
+
+    std::cerr << "sdr stop" << std::endl;
 }
 
 
@@ -63,7 +67,8 @@ int main(int argc, const char* argv[])
       ("h,help", "Print help")
       ("c,config", "Config file")
       ("w", "write CSV file")
-      ("s", "ascii spectrogram")
+      ("s", "websocket for spectrogram")
+      ("p", "phy testing")
       ("l", "gpio test")
     ;
 
@@ -96,14 +101,14 @@ int main(int argc, const char* argv[])
 
     // create RX and TX queues to communicate with the SDR object
     RadioThreadIQDataQueuePtr iqpipe_rx = std::make_shared<RadioThreadIQDataQueue>();
-    iqpipe_rx->set_max_items(1000);
+    iqpipe_rx->set_max_items(2000);
 
     RadioThreadIQDataQueuePtr iqpipe_tx = std::make_shared<RadioThreadIQDataQueue>();
-    iqpipe_tx->set_max_items(1000);
+    iqpipe_tx->set_max_items(2000);
 
     // init SDR
 //    sdr = new LimeRadioThread();  // default is defined via DEFAULT_SAMPLEBUFFERCNT
-    sdr = new LimeRadioThread(1048);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
+    sdr = new LimeRadioThread(1280);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
     sdr->setRXQueue(iqpipe_rx);
     sdr->setTXQueue(iqpipe_tx);
     sdr->setFrequency(cf_center_freq);
@@ -118,7 +123,7 @@ int main(int argc, const char* argv[])
 
     //wait for waitTime seconds and then stop the sdr thread to limit the amount
     //of data collected for testing
-    uint64_t waitTime = 3*60;
+    uint64_t waitTime = 1;
     std::thread w1(warta,sdr, waitTime);
     
  
@@ -174,6 +179,16 @@ int main(int argc, const char* argv[])
 
         stop = false;
     } 
+
+
+    if(result.count("p")) {
+        PhyThread *phy;
+        phy = new PhyThread(1);
+
+        phy->setRXQueue(iqpipe_rx);
+
+        phy->run(); // this is blocking for testing at the moment
+    }
 
     if(stop)
         sdr->stop();

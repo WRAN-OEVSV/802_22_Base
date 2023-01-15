@@ -22,6 +22,8 @@ add_definitions(-mfpmath=sse)
 set(WRAN_SOURCES
     "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp" 
     "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp" 
+    "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp" 
+    "${PROJECT_SOURCE_DIR}/phy/PhyFrameSync.cpp" 
     "${PROJECT_SOURCE_DIR}/util/log.cpp"
     "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
     "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
