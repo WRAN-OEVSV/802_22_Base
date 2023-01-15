@@ -7,6 +7,29 @@
 
 
 
+/*
+
+how to test the websocket connection
+
+curl --include \
+     --no-buffer \
+     --header "Connection: Upgrade" \
+     --header "Upgrade: websocket" \
+     --header "Host: example.com:80" \
+     --header "Origin: http://example.com:80" \
+     --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+     --header "Sec-WebSocket-Version: 13" \
+     http://localhost:9123/websocket
+
+
+or use the JS based waterfall display
+
+https://github.com/jledet/waterfall (change script.js to point to localhost and correct port)
+
+
+*/
+
+
 wsSpectrogram::wsSpectrogram(int port) : WebSocketServer(port) {
 
     LOG_TEST_INFO("wsSpectrogram::wsSpectrogram() port {} ", port);
