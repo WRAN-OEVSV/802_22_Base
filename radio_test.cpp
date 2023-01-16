@@ -108,7 +108,7 @@ int main(int argc, const char* argv[])
 
     // init SDR
 //    sdr = new LimeRadioThread();  // default is defined via DEFAULT_SAMPLEBUFFERCNT
-    sdr = new LimeRadioThread(1280);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
+    sdr = new LimeRadioThread(3200);  // set to a specifc sampleCnt (# samples RX , # samples TX max)
     sdr->setRXQueue(iqpipe_rx);
     sdr->setTXQueue(iqpipe_tx);
     sdr->setFrequency(cf_center_freq);

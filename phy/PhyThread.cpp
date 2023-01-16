@@ -2,7 +2,7 @@
 #include "phy/PhyThread.h"
 
 
-PhyThread::PhyThread(int phyMode) : m_phyMode{phyMode} {
+PhyThread::PhyThread(int phyMode) : m_phyMode{phyMode}, m_currentSampleTimestamp{0} {
     LOG_PHY_INFO("PhyThread::PhyThread() constructor - phy is runing in mode {}", phyMode);
     terminated.store(false);
     stopping.store(false);
@@ -59,9 +59,13 @@ void PhyThread::run() {
 
             m_IQdataRXQueue->pop(m_rxIQdataOut);
 
+            m_currentSampleTimestamp = m_rxIQdataOut->timestampFirstSample;
+
             for(auto sample: m_rxIQdataOut->data)
             {
+                m_frameSync.m_currentSampleTimestamp = m_currentSampleTimestamp;
                 m_frameSync.execute(sample);
+                m_currentSampleTimestamp++;
             }
 
         }

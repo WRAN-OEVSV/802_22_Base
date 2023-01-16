@@ -56,6 +56,9 @@ public:
 
     void execute(liquid_float_complex sample);
 
+
+    uint64_t m_currentSampleTimestamp;
+
 protected:
 
 

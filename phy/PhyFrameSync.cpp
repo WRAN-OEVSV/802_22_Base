@@ -75,22 +75,26 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
     unsigned int i;
     for (i=0; i<m_M; i++)
         m_gain_B[i] = cosf(i*phi) + 1.0if * sinf(i*phi); //liquid_cexpjf_std(i*phi);   
+        //#define liquid_cexpjf(THETA) (cosf(THETA) + _Complex_I*sinf(THETA))
 
 
-    //#define liquid_cexpjf(THETA) (cosf(THETA) + _Complex_I*sinf(THETA))
+    // thresholds were derived with octave analyzing the raw s_hat data
+    // this probably needs to be rqchecked on a real radio link
+    // @todo check with real radio link
+    m_STS_detect_thresh = 1400;
+    m_STS_sync_thresh = 1400;
 
-    // 
+
     // synchronizer objects
-    //
 
     // numerically-controlled oscillator
     m_nco_rx = nco_crcf_create(LIQUID_NCO);
 
-#if PHY_ENABLE_SQUELCH
-    // coarse detection
-    q->squelch_threshold = -25.0f;
-    q->squelch_enabled = 0;
-#endif
+// #if PHY_ENABLE_SQUELCH
+//     // coarse detection
+//     q->squelch_threshold = -25.0f;
+//     q->squelch_enabled = 0;
+// #endif
 
     // // reset object
     reset_parameters();
@@ -121,8 +125,8 @@ int PhyFrameSync::reset_parameters() {
     m_p1_prime = 0.0f;
 
     // set thresholds (increase for small number of subcarriers)
-    m_STS_detect_thresh = (m_M > 44) ? 0.35f : 0.35f + 0.01f*(44 - m_M);
-    m_STS_sync_thresh   = (m_M > 44) ? 0.30f : 0.30f + 0.01f*(44 - m_M);
+    m_STS_detect_thresh = 1400; // (m_M > 44) ? 0.35f : 0.35f + 0.01f*(44 - m_M);
+    m_STS_sync_thresh   = 1400; // (m_M > 44) ? 0.30f : 0.30f + 0.01f*(44 - m_M);
 
     // // reset state
     // _q->state = OFDMFRAMESYNC_STATE_SEEKPLCP;
@@ -131,13 +135,16 @@ int PhyFrameSync::reset_parameters() {
 
 }
 
-
+/**
+ * @brief initalize the STS seqence in frequency and time domain
+ * 
+ * @return int 
+ */
 int PhyFrameSync::init_STS() {
-
-    //
 
     unsigned int i;
 
+    // @todo - check msequence - this somehow does not work
     // // @todo das muss nochmal angeschaut werden - da wir eigentlich mit m=8 fahren sollten bei m_M = 1024
     // // damit eine 4x 256 bit sequenz entsteht - wir nehmen jetzt mal nur 256 bit von ms
     // unsigned int ms_m = 9;                     // _m : generator polynomial length, sequence length is (2^m)-1
@@ -186,14 +193,27 @@ int PhyFrameSync::init_STS() {
         M_STS++;
     }
 
-    std::cout << "check check" << std::endl;
-    for(i=0; i<m_M; i++)
-        std::cout << m_STS[i] << " ";
-    std::cout  << std::endl;
+
+    // do an fftshift of m_STS of the STS Sync symbol as the sender (for the test gnuradio) is
+    // shifting the sync also 
+    // @todo check for futur if we still do this - further the DC subcarriers should be checked again
+    // @todo as the generated sequence is not 100% what the standard describes
+    liquid_float_complex tmp;
+
+    for (i=0; i<m_M2; i++) {
+        tmp = m_STS[i];
+        m_STS[i] = m_STS[i+m_M2];
+        m_STS[i+m_M2] = tmp;
+    }
+
+    // std::cout << "check check" << std::endl;
+    // for(i=0; i<m_M; i++)
+    //     std::cout << m_STS[i] << " ";
+    // std::cout  << std::endl;
 
 
     // destroy objects
- //   msequence_destroy(ms);
+    // msequence_destroy(ms);
 
     // ensure at least one subcarrier was enabled
     if (M_STS == 0) {
@@ -211,8 +231,8 @@ int PhyFrameSync::init_STS() {
     float g = 1.0f / sqrtf(M_STS);
     for (i=0; i<m_M; i++)
         m_sts[i] *= g;
-    return LIQUID_OK;
 
+    return 0;
 }
 
 int PhyFrameSync::validate_sctype_STS() {
@@ -312,7 +332,7 @@ int PhyFrameSync::execute_seekSTS() {
 
     liquid_float_complex s_hat;
     STS_metrics(m_gain_STSa, s_hat);
- //   s_hat *= g;
+    s_hat *= g;
 
     float tau_hat  = std::arg(s_hat) * (float)(m_M2) / (2*M_PI);
 
@@ -322,7 +342,7 @@ int PhyFrameSync::execute_seekSTS() {
     //         std::abs(s_hat), std::arg(s_hat),
     //         tau_hat);
 
-    std::cout << "grepgrepgrep," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << std::endl;
+    //std::cout << "grepgrepgrep," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << std::endl;
 
 
     // save gain (permits dynamic invocation of get_rssi() method)
@@ -331,6 +351,7 @@ int PhyFrameSync::execute_seekSTS() {
     // 
     if (std::abs(s_hat) > m_STS_detect_thresh) {
 
+        std::cout << "STS! " << m_currentSampleTimestamp << std::endl;
         int dt = (int)roundf(tau_hat);
         // set timer appropriately...
         m_timer = (m_M + dt) % (m_M2);
@@ -351,19 +372,28 @@ int PhyFrameSync::estimate_gain_STS(liquid_float_complex *rc, liquid_float_compl
     
     // compute gain, ignoring NULL subcarriers
     unsigned int i;
-    float gain = sqrtf(m_M_STS) / (float)(m_M);
 
-    for (i=0; i< m_M; i++)
-        G[i] = 0.0f;
+    //value derived through checking with octave - value smaller than 0.55f created kind of a distortion
+    //original - sqrtf(m_M_STS) / (float)(m_M);
+    float gain = 0.055f; 
     
-    unsigned int n = 0;
 
-    for (i=0; i< (m_M/4); i++) {
-        n = ((i+1)*4)-1;
-        G[n] = m_X[n] * conj(m_STS[n]);
-  //      G[n] *= gain;
+//     for (i=0; i< m_M; i++)
+//         G[i] = 0.0f;
+    
+//     unsigned int n = 0;
+
+//     for (i=0; i< (m_M/4); i++) {
+//         n = ((i+1)*4)-1;
+//         G[n] = m_X[n] * conj(m_STS[n]);
+//   //      G[n] *= gain;
+//     }
+
+    // @todo - optimize to not touch all entries 
+    for (i=0; i<m_M; i++) {
+        G[i] = m_X[i] * conj(m_STS[i]);
+        G[i] *= gain;
     }
-
 
     return 0;
 }
@@ -375,7 +405,6 @@ int PhyFrameSync::STS_metrics(liquid_float_complex *G, liquid_float_complex &s )
     unsigned int i;
     liquid_float_complex s_hat = 0.0f;
 
-
     // for(i=0; i < m_M; i++)
     //     std::cout << G[i] << " ";
     // std::cout << std::endl;
@@ -384,12 +413,14 @@ int PhyFrameSync::STS_metrics(liquid_float_complex *G, liquid_float_complex &s )
     // gains on subsequent pilot subcarriers (note that all the odd
     // subcarriers are NULL)
     for (i=3; i<(m_M-4); i+=4) {
-//        s_hat += G[(i+4)]*conj(G[i]);
-        s_hat += G[i]*conj(G[(i+4)]);
+        s_hat += G[(i+4)]*conj(G[i]);
+//        s_hat += G[i]*conj(G[(i+4)]);
     }
- //   s_hat /= m_M_STS; // normalize output
+
+    //the normalizing as done in the liquid ofdmframesync does create problems 
+    //s_hat /= m_M_STS; // normalize output
     
-   // LOG_PHY_DEBUG("PhyFrameSync::STS_metrics() - s_hat {} {} m_M_STS {}", std::abs(s_hat), std::arg(s_hat), m_M_STS);
+    // LOG_PHY_DEBUG("PhyFrameSync::STS_metrics() - s_hat {} {} m_M_STS {}", std::abs(s_hat), std::arg(s_hat), m_M_STS);
     // set output values
     s = s_hat;
     return 0;

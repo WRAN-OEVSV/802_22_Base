@@ -77,4 +77,7 @@ private:
     RadioThreadIQDataQueuePtr m_IQdataTXQueue; // = std::make_shared<RadioThreadIQDataQueue>();
     RadioThreadIQDataPtr m_txIQdataOut;
 
+
+    uint64_t m_currentSampleTimestamp;
+
 };
