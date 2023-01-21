@@ -64,6 +64,22 @@ protected:
 
 
 private:
+
+    // statemachine
+    // receiver sync state
+    enum {
+        FRAMESYNC_STATE_DETECT_STS=0,   // seek initial STS
+        FRAMESYNC_STATE_SYNC_STS,       // (re)sync STS
+        FRAMESYNC_STATE_STS_0,          // seek first STS short sequence
+        FRAMESYNC_STATE_STS_1,          // seek second STS short sequence
+        FRAMESYNC_STATE_LTS,            // seek LTS long sequence
+        FRAMESYNC_STATE_RXSYMBOLS       // receive payload symbols
+    } m_frameSyncState;
+
+    uint16_t m_wait = 0;
+
+
+    // symbol information
     unsigned int m_M;                               // number of subcarriers
     unsigned int m_M2;                               // number of subcarriers div by 2
     unsigned int m_cp_len;                          // cyclic prefix length
@@ -77,7 +93,6 @@ private:
     unsigned int m_M_data;    // number of data subcarriers
     unsigned int m_M_STS;      // number of enabled subcarriers in STS
     unsigned int m_M_LTS;      // number of enabled subcarriers in LTS
-
 
     // scaling factors
     float m_g_data;           // data symbols gain
@@ -123,12 +138,16 @@ private:
     unsigned int m_num_symbols;         // symbol counter
     unsigned int m_backoff;             // sample timing backoff
 
+    liquid_float_complex m_s_hat_d;     // detect S0 symbol metrics estimate
     liquid_float_complex m_s_hat_0;     // first S0 symbol metrics estimate
     liquid_float_complex m_s_hat_1;     // second S0 symbol metrics estimate
 
     // detection thresholds
-    float m_STS_detect_thresh;   // detection threshold, nominally 0.35 // to be checked
+    float m_STS_detect_upper_thresh;   // detection threshold, nominally 0.35 // to be checked
+    float m_STS_detect_lower_thresh;
     float m_STS_sync_thresh;     // long symbol threshold, nominally 0.30
+
+    bool m_STS_detect_hit_upper_tresh;  // set to true when in STS detection the upper limit is first hit (i.e. we need to backoff a bit)
 
     int init_STS_sctype(); 
     int init_LTS_sctype();
@@ -139,7 +158,11 @@ private:
 
     int reset_parameters();
 
-    int execute_seekSTS();
+    int execute_detect_STS();
+    int execute_sync_STS();
+
+    int execute_sync_STSa();
+    int execute_sync_STSb();
 
     int estimate_gain_STS(liquid_float_complex *rc, liquid_float_complex *G);
 

@@ -10,7 +10,7 @@ PhyFrameSync::PhyFrameSync() {
 PhyFrameSync::PhyFrameSync(unsigned int M,
                            unsigned int cp_len,
                            unsigned int taper_len) 
-    : m_M{M}, m_cp_len{cp_len}, m_taper_len{taper_len} {
+    : m_M{M}, m_cp_len{cp_len}, m_taper_len{taper_len}, m_frameSyncState{FRAMESYNC_STATE_DETECT_STS} {
 
     LOG_PHY_INFO("PhyFrameSync::PhyFrameSync(M,cp,taper) called {} {} {} ", M, cp_len, taper_len );
 
@@ -62,12 +62,10 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
     m_gain_B   = (liquid_float_complex*) malloc((m_M)*sizeof(liquid_float_complex));
     m_gain_R   = (liquid_float_complex*) malloc((m_M)*sizeof(liquid_float_complex));
 
-#if 1
     memset(m_gain_STSa, 0x00, m_M*sizeof(liquid_float_complex));
     memset(m_gain_STSb, 0x00, m_M*sizeof(liquid_float_complex));
-    memset(m_gain_G ,  0x00, m_M*sizeof(liquid_float_complex));
-    memset(m_gain_B,   0x00, m_M*sizeof(liquid_float_complex));
-#endif
+    memset(m_gain_G ,   0x00, m_M*sizeof(liquid_float_complex));
+    memset(m_gain_B,    0x00, m_M*sizeof(liquid_float_complex));
 
     // timing backoff
     m_backoff = m_cp_len < 2 ? m_cp_len : 2;
@@ -81,14 +79,16 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
     // thresholds were derived with octave analyzing the raw s_hat data
     // this probably needs to be rqchecked on a real radio link
     // @todo check with real radio link
-    m_STS_detect_thresh = 1400;
+    m_STS_detect_lower_thresh = PHY_STS_DETECT_LWR_THR;
+    m_STS_detect_upper_thresh = PHY_STS_DETECT_UPR_THR;
     m_STS_sync_thresh = 1400;
 
+    m_STS_detect_hit_upper_tresh = false;
 
     // synchronizer objects
 
     // numerically-controlled oscillator
-    m_nco_rx = nco_crcf_create(LIQUID_NCO);
+    m_nco_rx = nco_crcf_create(LIQUID_NCO);             // creates NCO with theta = 0 and d_theta = 0
 
 // #if PHY_ENABLE_SQUELCH
 //     // coarse detection
@@ -121,15 +121,19 @@ int PhyFrameSync::reset_parameters() {
     m_num_symbols = 0;
     m_s_hat_0 = 0.0f;
     m_s_hat_1 = 0.0f;
+    m_s_hat_d = 0.0f;
     m_phi_prime = 0.0f;
     m_p1_prime = 0.0f;
 
     // set thresholds (increase for small number of subcarriers)
-    m_STS_detect_thresh = 1400; // (m_M > 44) ? 0.35f : 0.35f + 0.01f*(44 - m_M);
+    m_STS_detect_lower_thresh = PHY_STS_DETECT_LWR_THR;
+    m_STS_detect_upper_thresh = PHY_STS_DETECT_UPR_THR; // (m_M > 44) ? 0.35f : 0.35f + 0.01f*(44 - m_M);
     m_STS_sync_thresh   = 1400; // (m_M > 44) ? 0.30f : 0.30f + 0.01f*(44 - m_M);
 
+    m_STS_detect_hit_upper_tresh = false;
+
     // // reset state
-    // _q->state = OFDMFRAMESYNC_STATE_SEEKPLCP;
+    m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
     return 0;
 
 
@@ -287,17 +291,76 @@ int PhyFrameSync::init_LTS_sctype() {
 
 void PhyFrameSync::execute(liquid_float_complex sample) {
 
+
+    // @todo - NCO must be handled in PhyThread as it is needed for all samples not only STS/LTS but also data samples
+
+    // correct for carrier frequency offset
+    if (m_frameSyncState != FRAMESYNC_STATE_DETECT_STS) {
+
+        // Rotate input vector down by NCO angle, y = x exp{-j theta}
+        nco_crcf_mix_down(m_nco_rx, sample, &sample);
+        nco_crcf_step(m_nco_rx);
+    }
+
+
+
     windowcf_push(m_input_buffer,sample);
 
-    execute_seekSTS();
+
+    // @note - not to forget!!
+    // we must consider two different "phases" - there is the "inital" search for the start of the frame structure
+    // and after this sync has happend it must switch to "periodic" re-sync; on the following 802.22 super and non-super frames
+
+
+    switch (m_frameSyncState)
+    {
+    case FRAMESYNC_STATE_DETECT_STS:
+        execute_detect_STS();
+        break;
+
+    case FRAMESYNC_STATE_SYNC_STS:
+        execute_sync_STS();
+        break;
+
+    case FRAMESYNC_STATE_STS_0:
+        execute_sync_STSa();
+        break;
+
+    case FRAMESYNC_STATE_STS_1:
+        execute_sync_STSb();
+        break;
+
+    case FRAMESYNC_STATE_LTS:
+        if(m_timer > 0)
+            m_timer--;              // finish STS frame
+        else {
+            m_frameSyncState = FRAMESYNC_STATE_RXSYMBOLS;
+        }
+        break;
+    case FRAMESYNC_STATE_RXSYMBOLS:
+        if(m_wait > (3*1280)) {
+            m_wait = 0;
+            m_timer = 0;
+            m_frameSyncState = FRAMESYNC_STATE_SYNC_STS;
+        } else {
+            m_wait++;
+        }
+        break;
+    default:
+        m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
+//        m_frameSyncState = FRAMESYNC_STATE_STS_0;
+        break;
+
+    }
+    
 
 }
 
-int PhyFrameSync::execute_seekSTS() {
+int PhyFrameSync::execute_detect_STS() {
 
     m_timer++;
 
-    if (m_timer < m_M)
+    if (m_timer < (m_M/4))             // smaller serach window
         return 0;
 
     // reset timer
@@ -336,31 +399,287 @@ int PhyFrameSync::execute_seekSTS() {
 
     float tau_hat  = std::arg(s_hat) * (float)(m_M2) / (2*M_PI);
 
-    // LOG_PHY_DEBUG("PhyFrameSync::execute_seekSTS() gain={}, rssi={}, s_hat={} <{}>, tau_hat={}",
+    // LOG_PHY_DEBUG("PhyFrameSync::execute_detect_STS() gain={}, rssi={}, s_hat={} <{}>, tau_hat={}",
     //         sqrt(g),
     //         -10*log10(g),
     //         std::abs(s_hat), std::arg(s_hat),
     //         tau_hat);
 
-    //std::cout << "grepgrepgrep," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << std::endl;
+ //   std::cout << "grepgrepgrep," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << m_timer << std::endl;
 
 
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
 
     // 
-    if (std::abs(s_hat) > m_STS_detect_thresh) {
+    if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
+//    if (std::abs(s_hat) > 0) {
 
-        std::cout << "STS! " << m_currentSampleTimestamp << std::endl;
         int dt = (int)roundf(tau_hat);
-        // set timer appropriately...
-        m_timer = (m_M + dt) % (m_M2);
-        m_timer += m_M; // add delay to help ensure good S0 estimate
-  //      _q->state = OFDMFRAMESYNC_STATE_PLCPSHORT0;
+        std::cout << "grepgrepgrepZ," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << dt << std::endl;
 
+
+        if(std::abs(s_hat) < m_STS_detect_upper_thresh) {
+
+            // if(std::abs(s_hat) > std::abs(m_s_hat_d))
+            
+            if(!m_STS_detect_hit_upper_tresh) {         
+
+                std::cout << "framestart (roughly)" << (m_currentSampleTimestamp - 1024 + (512- dt)) << std::endl;
+
+                // set timer appropriately...
+                m_timer = (m_M + dt) % (m_M2);
+                m_timer += m_M; // add delay to help ensure good S0 estimate
+
+
+                // we are on the raising slope of detection i.e. we are at the beginning of the STS symbol
+                m_frameSyncState = FRAMESYNC_STATE_STS_0;
+            } else {
+                std::cout << "coming from upper" << std::endl;
+                // we hit the symbol in the middel 
+                // we forward a bit and let the STS_DETECT run
+                m_timer = 0;
+//                m_STS_detect_hit_upper_tresh = false;
+                m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
+            }
+
+            
+        } else {
+            std::cout << "hit upper" << std::endl;
+            m_STS_detect_hit_upper_tresh = true;
+            m_timer = 0;
+        }
+    } else {
+        // when we hit a non STS frame we reset the upper threshold hit
+        std::cout << "below lower" << std::endl;
+        m_STS_detect_hit_upper_tresh = false;
     }
-    return LIQUID_OK;
+    return 0;
 }
+
+
+
+
+
+int PhyFrameSync::execute_sync_STS() {
+
+    m_timer++;
+
+    // at this point we should be in the CP of the STS frame (after the inital lock)
+    // we move towards the lower threshold in sample chunks
+    if (m_timer < 31) {
+        if(m_timer == 1) std::cout << ":";
+        return 0;
+    }
+
+  //  std::cout << std::endl;
+
+    // reset timer
+    m_timer = 0;
+
+    //
+    liquid_float_complex *rc;
+    windowcf_read(m_input_buffer, &rc);
+
+    // estimate gain
+    unsigned int i;
+    // start with a reasonably small number to avoid divide-by-zero warning
+    float g = 1.0e-9f;
+    for (i= m_cp_len; i<m_M + m_cp_len; i++) {
+        // compute |rc[i]|^2 efficiently
+        g += rc[i].real()*rc[i].real() + rc[i].imag()*rc[i].imag();
+    }
+    g = (float)(m_M) / g;
+
+    // estimate S0 gain
+    estimate_gain_STS(&rc[m_cp_len], m_gain_STSa);
+
+    liquid_float_complex s_hat;
+    STS_metrics(m_gain_STSa, s_hat);
+    s_hat *= g;
+
+    float tau_hat  = std::arg(s_hat) * (float)(m_M2) / (2*M_PI);
+
+    // LOG_PHY_DEBUG("PhyFrameSync::execute_detect_STS() gain={}, rssi={}, s_hat={} <{}>, tau_hat={}",
+    //         sqrt(g),
+    //         -10*log10(g),
+    //         std::abs(s_hat), std::arg(s_hat),
+    //         tau_hat);
+
+    // save gain (permits dynamic invocation of get_rssi() method)
+    m_g0 = g;
+
+
+    if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
+        int dt = (int)roundf(tau_hat);
+        std::cout << "\ngrepgrepgrepX," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << dt << std::endl;
+
+        m_timer = m_M; // add delay to help ensure good S0 estimate
+
+        // we are on the raising slope of detection i.e. we are at the beginning of the STS symbol
+        m_frameSyncState = FRAMESYNC_STATE_STS_0;
+    } 
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+int PhyFrameSync::execute_sync_STSa()
+{
+    m_timer++;
+
+    if (m_timer < m_M2)
+        return 0;
+
+    // reset timer
+    m_timer = 0;
+
+    //
+    liquid_float_complex *rc;
+    windowcf_read(m_input_buffer, &rc);
+
+    // TODO : re-estimate nominal gain
+
+    // estimate STS gain
+    estimate_gain_STS(&rc[m_cp_len], m_gain_STSa);
+
+    liquid_float_complex s_hat;
+    STS_metrics(m_gain_STSa, s_hat);
+    s_hat *= m_g0;
+
+    m_s_hat_0 = s_hat;
+
+// #if DEBUG_OFDMFRAMESYNC_PRINT
+//     float tau_hat  = cargf(s_hat) * (float)(_q->M2) / (2*M_PI);
+//     printf("********** S0[0] received ************\n");
+//     printf("    s_hat   :   %12.8f <%12.8f>\n", cabsf(s_hat), cargf(s_hat));
+//     printf("  tau_hat   :   %12.8f\n", tau_hat);
+// #endif
+
+// // TODO : also check for phase of s_hat (should be small)
+// if (std::abs(s_hat) < std::abs(m_s_hat_d)) {
+//     // false alarm
+//     LOG_PHY_ERROR("false alarm STS[0]");
+//     reset_parameters();
+//     return 1;
+// }
+
+//    std::cout << "grepgrepgrep_a," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << ",0," << m_timer << std::endl;
+
+    m_frameSyncState = FRAMESYNC_STATE_STS_1;
+    return 0;
+}
+
+int PhyFrameSync::execute_sync_STSb()
+{
+    //printf("t = %u\n", _q->timer);
+    m_timer++;
+
+    if (m_timer < m_M2)
+        return 0;
+
+    // reset timer
+    // m_timer = m_M + m_cp_len - m_backoff;
+
+    //
+    liquid_float_complex *rc;
+    windowcf_read(m_input_buffer, &rc);
+
+    // estimate STS gain
+    estimate_gain_STS(&rc[m_cp_len], m_gain_STSb);
+
+    liquid_float_complex s_hat;
+    STS_metrics(m_gain_STSb, s_hat);
+    s_hat *= m_g0;
+
+    m_s_hat_1 = s_hat;
+
+// #if DEBUG_OFDMFRAMESYNC_PRINT
+//     float tau_hat  = cargf(s_hat) * (float)(_q->M2) / (2*M_PI);
+//     printf("********** S0[1] received ************\n");
+//     printf("    s_hat   :   %12.8f <%12.8f>\n", cabsf(s_hat), cargf(s_hat));
+//     printf("  tau_hat   :   %12.8f\n", tau_hat);
+
+//     // new timing offset estimate
+//     tau_hat  = cargf(_q->s_hat_0 + _q->s_hat_1) * (float)(_q->M2) / (2*M_PI);
+//     printf("  tau_hat * :   %12.8f\n", tau_hat);
+
+//     printf("**********\n");
+// #endif
+
+    // re-adjust timer accordingly
+    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M2) / (2*M_PI);
+
+    m_timer = 256 - (int)roundf(tau_prime);
+
+
+
+    if(std::abs(m_s_hat_1) < (std::abs(m_s_hat_0)-0.5)) {
+        // we hit the frame at the very end on the first bunch of smaples received by the SDR
+        std::cout << "STSb hit coming from upper" << std::endl;
+        m_STS_detect_hit_upper_tresh = true;
+        m_timer = 0;
+        m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
+        return 1;
+    }
+
+
+// #if 0
+//     if (cabsf(s_hat) < 0.3f) {
+// #if DEBUG_OFDMFRAMESYNC_PRINT
+//         printf("false alarm S0[1]\n");
+// #endif
+//         // false alarm
+//         ofdmframesync_reset(_q);
+//         return;
+//     }
+// #endif
+
+     unsigned int i;
+// #if 0
+//     float complex g_hat = 0.0f;
+//     for (i=0; i<_q->M; i++)
+//         g_hat += _q->G0b[i] * conjf(_q->G0a[i]);
+
+//     // compute carrier frequency offset estimate using freq. domain method
+//     float nu_hat = 2.0f * cargf(g_hat) / (float)(_q->M);
+// #else
+    // compute carrier frequency offset estimate using ML method
+    liquid_float_complex t0 = 0.0f;
+    for (i=0; i<m_M2; i++) {
+        t0 += conj(rc[i]) * m_sts[i] * rc[i+m_M2] * conj(m_sts[i+m_M2]);
+    }
+    float nu_hat = std::arg(t0) / (float)(m_M2);
+// #endif
+
+// #if DEBUG_OFDMFRAMESYNC_PRINT
+//     printf("   nu_hat   :   %12.8f\n", nu_hat);
+// #endif
+
+    std::cout << "grepgrepgrep_b," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_prime << "," << m_timer << "," << nu_hat << std::endl;
+
+    // NICHT SICHER OB DAS STIMMT MIT DEM FRAME START ....
+    std::cout << "framestart (roughly)" << (m_currentSampleTimestamp - 1024 + (0 - (int)roundf(tau_prime))) << std::endl;
+
+
+
+    // set NCO frequency
+    nco_crcf_set_frequency(m_nco_rx, nu_hat);
+
+    m_frameSyncState = FRAMESYNC_STATE_LTS;
+    return 0;
+}
+
+
+
+
+
 
 int PhyFrameSync::estimate_gain_STS(liquid_float_complex *rc, liquid_float_complex *G) {
 
@@ -418,7 +737,7 @@ int PhyFrameSync::STS_metrics(liquid_float_complex *G, liquid_float_complex &s )
     }
 
     //the normalizing as done in the liquid ofdmframesync does create problems 
-    //s_hat /= m_M_STS; // normalize output
+    s_hat /= m_M_STS; // normalize output
     
     // LOG_PHY_DEBUG("PhyFrameSync::STS_metrics() - s_hat {} {} m_M_STS {}", std::abs(s_hat), std::arg(s_hat), m_M_STS);
     // set output values

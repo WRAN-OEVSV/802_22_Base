@@ -60,6 +60,7 @@ void PhyThread::run() {
             m_IQdataRXQueue->pop(m_rxIQdataOut);
 
             m_currentSampleTimestamp = m_rxIQdataOut->timestampFirstSample;
+            std::cout << m_currentSampleTimestamp << " " << m_rxIQdataOut->data.size() << std::endl;
 
             for(auto sample: m_rxIQdataOut->data)
             {
