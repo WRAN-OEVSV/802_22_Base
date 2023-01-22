@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "external/LimeSuite/src/GFIR",
+		"source" : "external/LimeSuite/src/GFIR"
+	}
+}

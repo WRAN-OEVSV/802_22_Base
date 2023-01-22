@@ -1,0 +1,751 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "external/LimeSuite/src/libLimeSuite.so"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"install",
+			"set_property",
+			"find_package",
+			"add_compile_options",
+			"target_link_libraries",
+			"target_compile_definitions",
+			"target_include_directories",
+			"add_subdirectory",
+			"target_sources",
+			"include"
+		],
+		"files" : 
+		[
+			"external/LimeSuite/src/CMakeLists.txt",
+			"/home/bernhard/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/223.8214.51/bin/cmake/linux/share/cmake-3.24/Modules/FindThreads.cmake",
+			"external/LimeSuite/CMakeLists.txt",
+			"external/LimeSuite/src/ConnectionXillybus/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 126,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 138,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 112,
+				"parent" : 0
+			},
+			{
+				"file" : 1,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 242,
+				"parent" : 4
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 102,
+				"parent" : 6
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 106,
+				"parent" : 6
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 127,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 135,
+				"parent" : 0
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 132,
+				"parent" : 0
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 148,
+				"parent" : 0
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 159,
+				"parent" : 0
+			},
+			{
+				"file" : 3,
+				"parent" : 13
+			},
+			{
+				"command" : 9,
+				"file" : 3,
+				"line" : 25,
+				"parent" : 14
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 171,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -fvisibility-inlines-hidden -g -fPIC -fdiagnostics-color=always   -march=native -mfpmath=sse -march=native -mfpmath=both"
+				},
+				{
+					"backtrace" : 7,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 7,
+					"fragment" : "-Wpedantic"
+				},
+				{
+					"backtrace" : 8,
+					"fragment" : "-fvisibility=hidden"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-pthread"
+				},
+				{
+					"fragment" : "-std=c++11"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 10,
+					"define" : "LIME_DLL"
+				},
+				{
+					"define" : "LIME_DLL_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/API"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lime"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/GFIR"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/protocols"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/ConnectionRegistry"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lms7002m_mcu"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/ADF4002"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/Si5351C"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lms7002m"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/FPGA_common"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/external/cpp-feather-ini-parser"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/external/kissFFT"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/limeRFE"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/threadHelper"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				41,
+				42,
+				43
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -fPIC -fdiagnostics-color=always   -march=native -mfpmath=sse -march=native -mfpmath=both"
+				},
+				{
+					"backtrace" : 7,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 7,
+					"fragment" : "-Wpedantic"
+				},
+				{
+					"backtrace" : 8,
+					"fragment" : "-fvisibility=hidden"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-pthread"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 10,
+					"define" : "LIME_DLL"
+				},
+				{
+					"define" : "LIME_DLL_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/API"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lime"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/GFIR"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/protocols"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/ConnectionRegistry"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lms7002m_mcu"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/ADF4002"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/Si5351C"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/lms7002m"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/FPGA_common"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/external/cpp-feather-ini-parser"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/external/kissFFT"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/limeRFE"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/bernhard/CLionProjects/802_22_Base/external/LimeSuite/src/threadHelper"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				19,
+				36,
+				37,
+				38,
+				39,
+				40
+			]
+		}
+	],
+	"id" : "LimeSuite::@92a2f564e92d38b00c42",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "lib"
+			},
+			{
+				"backtrace" : 2,
+				"path" : "lib"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/usr/local"
+		}
+	},
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "-pthread",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "LimeSuite",
+	"nameOnDisk" : "libLimeSuite.so",
+	"paths" : 
+	{
+		"build" : "external/LimeSuite/src",
+		"source" : "external/LimeSuite/src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/Logger.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ADF4002/ADF4002.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m_mcu/MCU_BD.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m_mcu/MCU_File.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ConnectionRegistry/IConnection.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ConnectionRegistry/ConnectionHandle.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ConnectionRegistry/ConnectionRegistry.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_RegistersMap.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_parameters.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_RxTxCalibrations.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_BaseCalibrations.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/mcu_dc_iq_calibration.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_filtersCalibration.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/lms7002m/LMS7002M_gainCalibrations.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/protocols/LMS64CProtocol.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/protocols/Streamer.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/protocols/ConnectionImages.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/Si5351C/Si5351C.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/external/kissFFT/kiss_fft.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/lms7_api.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/lms7_device.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LmsGeneric.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/qLimeSDR.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LimeSDR_mini.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LimeSDR.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LimeNET_micro.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LimeSDR_PCIE.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/API/LimeSDR_Core.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/FPGA_common/FPGA_common.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/FPGA_common/FPGA_Mini.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/FPGA_common/FPGA_Q.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/windowFunction.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/threadHelper/threadHelper.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-debug/external/LimeSuite/src/VersionInfo.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-debug/external/LimeSuite/src/SystemResources.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 12,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/src/GFIR/corrections.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 12,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/src/GFIR/gfir_lms.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 12,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/src/GFIR/lms.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 12,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/src/GFIR/recipes.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 12,
+			"compileGroupIndex" : 1,
+			"path" : "external/LimeSuite/src/GFIR/rounding.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 15,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ConnectionXillybus/ConnectionXillybusEntry.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 15,
+			"compileGroupIndex" : 0,
+			"path" : "external/LimeSuite/src/ConnectionXillybus/ConnectionXillybus.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 16,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-debug/external/LimeSuite/src/BuiltinConnections.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}
