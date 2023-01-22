@@ -1,8 +1,0 @@
-{
-    "Info" : { "Desc" : "config file for system settings" },
-    "Radio" : {
-        "SAMPLING_RATE" : 2285000,
-        "OVERSAMPLING" : 4,
-        "CENTER_FREQ" : 52000000
-    }
-}

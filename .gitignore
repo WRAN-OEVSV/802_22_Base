@@ -1,5 +1,6 @@
 # ignore build directory
 build/**
+cmake-build-debug/**
 
 # ignore all object files
 *.a
