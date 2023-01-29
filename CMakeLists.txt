@@ -60,7 +60,7 @@ set(WRAN_INCLUDES
         "${PROJECT_SOURCE_DIR}/util"
         "${PROJECT_SOURCE_DIR}/external/spdlog/include"
         "${CMAKE_BINARY_DIR}/_deps/liquid-build/include/liquid"
-        "${CMAKE_BINARY_DIR}/_deps/libwebsockets-src/include/"
+        "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/include/"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/"
         )
 
