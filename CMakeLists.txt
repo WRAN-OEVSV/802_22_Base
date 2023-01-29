@@ -19,10 +19,15 @@ add_definitions(-march=native)
 add_definitions(-mfpmath=sse)
 
 #set build type to distinguish DEBUG, RELEASE and CPE, BASE
-set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
-#set(CMAKE_BUILD_TYPE CPE)
-#set(CMAKE_BUILD_TYPE BASE)
+# keep on Release so that the dependend librariers are not build in Debug
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+
+# use seperate build type not to influence external libs
+#set(WRAN_BUILD_TYPE Release)
+#set(WRAN_BUILD_TYPE Debug)
+#set(WRAN_BUILD_TYPE CPE)
+#set(WRAN_BUILD_TYPE BASE)
 
 # CPM cmake dependency manager
 set(CPM_DOWNLOAD_VERSION 0.34.0)
