@@ -4,10 +4,7 @@
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
 #include <memory>
-#include <thread>
 #include <chrono>
-#include <iostream>
-#include <fstream> 
 #include <complex>
 
 
@@ -86,7 +83,7 @@ void LimeRadioThread::run() {
             int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
 
             //I and Q samples are interleaved in buffer: IQIQIQ...
-            float *pp = (float *)m_rxIQbuffer;
+            auto *pp = (float *)m_rxIQbuffer;
             liquid_float_complex s;
 
             // @tcheck  suboptimal ??  
@@ -125,7 +122,7 @@ void LimeRadioThread::run() {
                 int samplesWrite = m_txIQdataOut->data.size();
 
                 //I and Q samples are interleaved in buffer: IQIQIQ...
-                float *pp = (float *)m_txIQbuffer;
+                auto *pp = (float *)m_txIQbuffer;
                 liquid_float_complex s;
 
                 if(samplesWrite > 0)
@@ -176,7 +173,7 @@ void LimeRadioThread::terminate() {
 int LimeRadioThread::error()
 {
     LOG_RADIO_ERROR("LimeRadioThread::error() called");
-    if (m_lms_device != NULL)
+    if (m_lms_device != nullptr)
         LMS_Close(m_lms_device);
     exit(-1);
 }
@@ -205,7 +202,7 @@ int LimeRadioThread::initLimeSDR() {
         return -1;
 
     //open the first device
-    if (LMS_Open(&m_lms_device, list[0], NULL))
+    if (LMS_Open(&m_lms_device, list[0], nullptr))
         error();
 
     //Initialize device with default configuration
@@ -454,7 +451,7 @@ void LimeRadioThread::set_HW_RX() {
 
     LOG_RADIO_TRACE("set_HW_RX() gpio readback {0:x}", gpio_val);
 
-};
+}
 
 /**
  * @brief set TX mode based on RadioThread::TxMode::<mode>
@@ -528,4 +525,4 @@ void LimeRadioThread::set_HW_TX(TxMode m) {
     }
 
     LOG_RADIO_TRACE("set_HW_TX() gpio readback {0:x}", gpio_val);
-};
+}

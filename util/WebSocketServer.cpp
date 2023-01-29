@@ -11,11 +11,9 @@
  *  --------------------------------------------------------------------------
  **/
 
-#include <stdlib.h>
 #include <string>
 #include <cstring>
-#include <sys/time.h>
-#include <fcntl.h>
+#include <stdexcept>
 #include "libwebsockets.h"
 #include "util/WebSocketServer.h"
 
@@ -38,8 +36,6 @@ static int callback_main(   struct lws *wsi,
                             size_t len )
 {
     int fd;
-    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 + LWS_SEND_BUFFER_POST_PADDING];
-    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
 
     switch( reason ) {
         case LWS_CALLBACK_ESTABLISHED:
@@ -53,7 +49,7 @@ static int callback_main(   struct lws *wsi,
             while( !self->connections[fd]->buffer.empty( ) )
             {
                 const char * message = self->connections[fd]->buffer.front( );
-                int msgLen = strlen(message);
+                auto msgLen = strlen(message);
                 int charsSent = lws_write( wsi, (unsigned char *)message, msgLen, LWS_WRITE_TEXT );
                 if( charsSent < msgLen ) {
                     std::cout << "check check " << fd << " " << self->connections[fd]->buffer.size() << std::endl;
@@ -88,7 +84,7 @@ static struct lws_protocols protocols[] = {
         callback_main,
         0, // user data struct not used
         MAX_BUFFER_SIZE,
-    },{ NULL, NULL, 0, 0 } // terminator
+    },{ nullptr, nullptr, 0, 0 } // terminator
 };
 
 WebSocketServer::WebSocketServer( int port, const string certPath, const string& keyPath )
@@ -98,10 +94,10 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     this->_keyPath  = keyPath;
 
     lws_set_log_level( 0, lwsl_emit_syslog ); // We'll do our own logging, thank you.
-    struct lws_context_creation_info info;
+    struct lws_context_creation_info info{};
     memset( &info, 0, sizeof info );
     info.port = this->_port;
-    info.iface = NULL;
+    info.iface = nullptr;
     info.protocols = protocols;
 #ifndef LWS_NO_EXTENSIONS
     info.extensions = lws_get_internal_extensions( );
@@ -128,8 +124,9 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     info.ka_probes = 10; // 10 probes after ^ time
     info.ka_interval = 10; // 10s interval for sending probes
     this->_context = lws_create_context( &info );
-    if( !this->_context )
-        throw "libwebsocket init failed";
+    if( !this->_context ) {
+        throw runtime_error("libwebsocket init failed");
+    }
     //Util::log( "Server started on port " + Util::toString( this->_port ) );
     LOG_TEST_DEBUG("Server started on port {}", this->_port );
 
@@ -142,7 +139,7 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
 WebSocketServer::~WebSocketServer( )
 {
     // Free up some memory
-    for( map<int,Connection*>::const_iterator it = this->connections.begin( ); it != this->connections.end( ); ++it )
+    for( auto it = this->connections.begin( ); it != this->connections.end( ); ++it )
     {
         Connection* c = it->second;
         this->connections.erase( it->first );
@@ -152,8 +149,8 @@ WebSocketServer::~WebSocketServer( )
 
 void WebSocketServer::onConnectWrapper( int socketID )
 {
-    Connection* c = new Connection;
-    c->createTime = time( 0 );
+    auto* c = new Connection;
+    c->createTime = time(nullptr);
     this->connections[ socketID ] = c;
     this->onConnect( socketID );
 }
@@ -172,16 +169,17 @@ void WebSocketServer::onErrorWrapper( int socketID, const string& message )
     this->_removeConnection( socketID );
 }
 
-void WebSocketServer::send( int socketID, string data )
+void WebSocketServer::send( int socketID, const string& data )
 {
     // Push this onto the buffer. It will be written out when the socket is writable.
     this->connections[socketID]->buffer.push_back( data.c_str() );
 }
 
-void WebSocketServer::broadcast(string data )
+void WebSocketServer::broadcast(const string& data )
 {
-    for( map<int,Connection*>::const_iterator it = this->connections.begin( ); it != this->connections.end( ); ++it )
-        this->send( it->first, data );
+    for(auto & connection : this->connections) {
+        this->send(connection.first, data);
+    }
 }
 
 void WebSocketServer::setValue( int socketID, const string& name, const string& value )
@@ -200,7 +198,7 @@ int WebSocketServer::getNumberOfConnections( )
 
 void WebSocketServer::run( uint64_t timeout )
 {
-    while( 1 )
+    while( true )
     {
         this->wait( timeout );
     }
@@ -208,8 +206,9 @@ void WebSocketServer::run( uint64_t timeout )
 
 void WebSocketServer::wait( uint64_t timeout )
 {
-    if( lws_service( this->_context, timeout ) < 0 )
-        throw "Error polling for socket activity.";
+    if( lws_service( this->_context, timeout ) < 0 ) {
+        throw runtime_error("Error polling for socket activity.");
+    }
 }
 
 void WebSocketServer::_removeConnection( int socketID )

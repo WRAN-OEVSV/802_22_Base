@@ -15,11 +15,11 @@
 
 #ifndef _WEBSOCKETSERVER_H
 #define _WEBSOCKETSERVER_H
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <list>
-#include <stdio.h>
+#include <cstdio>
 #include <ctime>
 #include <sys/time.h>
 #include <iostream>
@@ -53,8 +53,8 @@ public:
 
     void run(       uint64_t timeout = 50     );
     void wait(      uint64_t timeout = 50     );
-    void send(      int socketID, string data );
-    void broadcast( string data               );
+    void send(      int socketID, const string& data );
+    void broadcast( const string& data               );
 
     // Key => value storage for each connection
     string getValue( int socketID, const string& name );
