@@ -1,15 +1,15 @@
 #pragma once
 
 #include <unistd.h> // usleep
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <complex.h>
+#include <cstring>
+#include <cstdio>
+#include <cmath>
+#include <complex>
 #include <complex>
 #include <iostream>
 #include <fstream>
 
-#include "liquid.h"
+#include <liquid.h>
 
 #include "phy/RadioThread.h"
 #include "util/log.h"
@@ -74,9 +74,9 @@ private:
     int m_ConCurSocket;
     std::atomic_bool m_socketsOn;
 
-    double m_rxFreq = 52000000;
-    double m_txFreq = 52000000;
-    double m_span = 2285000;
+    double m_rxFreq = 52'000'000;
+    double m_txFreq = 52'000'000;
+    double m_span = 2'285'000;
 
     std::stringstream m_msgSOCKET;
 

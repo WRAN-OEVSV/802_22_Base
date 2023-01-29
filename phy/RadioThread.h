@@ -132,7 +132,7 @@ public:
     bool pop(value_type& item) {
         std::unique_lock < SpinMutex > lock(m_mutex);
 
-        if(m_iq_queue.size() > 0) {
+        if(!m_iq_queue.empty()) {
             item = m_iq_queue.front();
             m_iq_queue.pop_front();
             return true;
