@@ -10,8 +10,17 @@
 #include "phy/PhyFrameSync.h"
 #include "phy/PhyDefinitions.h"
 
-
 #include "util/log.h"
+
+/**
+ * @brief class is managing Timing information of the Phy e.g. NCO for other information
+ * 
+ */
+class PhyTiminig {
+
+
+
+};
 
 
 

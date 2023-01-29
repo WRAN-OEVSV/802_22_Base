@@ -123,7 +123,7 @@ int main(int argc, const char* argv[])
 
     //wait for waitTime seconds and then stop the sdr thread to limit the amount
     //of data collected for testing
-    uint64_t waitTime = 1;
+    uint64_t waitTime = 2;
     std::thread w1(warta,sdr, waitTime);
     
  
