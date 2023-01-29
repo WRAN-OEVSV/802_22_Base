@@ -342,6 +342,7 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
             m_wait = 0;
             m_timer = 0;
             m_frameSyncState = FRAMESYNC_STATE_SYNC_STS;
+            std::cout << m_currentSampleTimestamp << std::endl;
         } else {
             m_wait++;
         }
@@ -413,7 +414,8 @@ int PhyFrameSync::execute_detect_STS() {
 
     // 
     if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
-//    if (std::abs(s_hat) > 0) {
+    // if (std::abs(s_hat) > 0) {
+    //     m_timer = 2*m_M;
 
         int dt = (int)roundf(tau_hat);
         std::cout << "grepgrepgrepZ," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << dt << std::endl;
@@ -623,6 +625,8 @@ int PhyFrameSync::execute_sync_STSb()
     if(std::abs(m_s_hat_1) < (std::abs(m_s_hat_0)-0.5)) {
         // we hit the frame at the very end on the first bunch of smaples received by the SDR
         std::cout << "STSb hit coming from upper" << std::endl;
+        std::cout << "STSb " << m_currentSampleTimestamp << "," << std::abs(m_s_hat_0) << "," << std::arg(m_s_hat_1)<< ","  << tau_prime << std::endl;
+
         m_STS_detect_hit_upper_tresh = true;
         m_timer = 0;
         m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
