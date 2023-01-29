@@ -43,3 +43,9 @@ The source code for this project can be found in the following repositories on G
 <li>WebSDR for RPX-100: <a href="https://github.com/WRAN-OEVSV/WebSDR" target="_blank">https://github.com/WRAN-OEVSV/WebSDR --> Integration into base ongoing</a></li>
 <li>Hardware Design RPX-100: <a href="https://github.com/WRAN-OEVSV/Hardware" target="_blank">https://github.com/WRAN-OEVSV/Hardware</a></li>
 </ul>
+
+The following dependencies need to be installed before building:
+
+sudo apt install libssl-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
+
+If not Ubuntu soapysdr needs to be installed from source before installing above dependencies.
