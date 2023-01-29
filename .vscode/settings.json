@@ -5,7 +5,7 @@
         "${workspaceRoot}", 
         "${workspaceRoot}/external/spdlog/include",
         "${workspaceRoot}/external/json/include",
-        "${workspaceRoot}/external/liquid-dsp/include",
+        "${workspaceRoot}/build/_deps/liquid-build/include/liquid",
         "${workspaceRoot}/external/cxxopts/include"
     ],
     "files.associations": {
