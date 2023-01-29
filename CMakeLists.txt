@@ -19,8 +19,8 @@ add_definitions(-march=native)
 add_definitions(-mfpmath=sse)
 
 #set build type to distinguish DEBUG, RELEASE and CPE, BASE
-set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE CPE)
 #set(CMAKE_BUILD_TYPE BASE)
 
