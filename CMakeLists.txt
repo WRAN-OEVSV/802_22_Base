@@ -52,13 +52,17 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
         "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
-        )
+        "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
+        "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.h"
+        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.cpp"
+        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.h")
 
 set(WRAN_INCLUDES
         "${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/phy"
         "${PROJECT_SOURCE_DIR}/util"
         "${PROJECT_SOURCE_DIR}/external/spdlog/include"
+        "${PROJECT_SOURCE_DIR}/external/argon2/include"
         "${CMAKE_BINARY_DIR}/_deps/liquid-build/include/liquid"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/include/"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/"
@@ -141,10 +145,19 @@ if (liquid_ADDED)
     target_link_libraries( liquid::liquid INTERFACE "${liquid_LIBRARY}")
 endif()
 
+# start argon2
+set(argon2_BINARY_DIR external/argon2)
+execute_process( COMMAND "make"
+        WORKING_DIRECTORY ${argon2_BINARY_DIR}
+        RESULT_VARIABLE A2_RESULT OUTPUT_VARIABLE
+        A2_OUTPUT ERROR_VARIABLE A2_ERROR)
+find_library(argon2 argon2 ${argon2_BINARY_DIR})
+# end argon2
+
 # create radio_test executable; used for testing sdr and phy topics at the moment
 add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
-target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+target_link_libraries(radio_test liquid::liquid websockets ${argon2} LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 #target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
