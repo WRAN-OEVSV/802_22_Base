@@ -14,10 +14,12 @@
 #include <string>
 #include <cstring>
 #include <stdexcept>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "libwebsockets.h"
 #include "util/WebSocketServer.h"
-
-#include "util/log.h"
+#include "User.h"
+#include "log.h"
 
 #define LWS_NO_EXTENSIONS 1
 
@@ -28,6 +30,42 @@ using namespace std;
 
 // Nasty hack because certain callbacks are statically defined
 WebSocketServer *webSocketServer;
+
+
+void read_users(const string & file_name, map<string, User> & users) {
+    std::filesystem::path file_name0{file_name};
+    if (!std::filesystem::exists(file_name0)) {
+        LOG_TEST_ERROR("User database {} is missing! Continuing without user support.", file_name);
+        return;
+    }
+    std::ifstream users_file(file_name);
+    nlohmann::json users_json = nlohmann::json::parse(users_file);
+    users_file.close();
+    if(!users_json.is_array()) {
+        LOG_TEST_ERROR("asdf");
+        return;
+    }
+    for (auto & item: users_json) {
+        // wrong type
+        if (!item.is_object()) continue;
+        if (!(item.contains("user_name") && item.contains("password_hash") &&
+            item["user_name"].is_string() && item["password_hash"].is_string())) {
+            continue;
+        }
+        User user;
+        user.setPasswordHash(item["password_hash"]);
+        user.setUsername(item["user_name"]);
+        // if permissions is there, we add it
+        if (item.contains("permission") && item["permission"].is_array()) {
+            for (auto & item2: item["permission"]) {
+                if (item2.is_string()) {
+                    string value{item2};
+                    user.addPermission(value);
+                }
+            }
+        }
+    }
+}
 
 static int callback_main(   struct lws *wsi,
                             enum lws_callback_reasons reason,
@@ -88,7 +126,7 @@ static struct lws_protocols protocols[] = {
     },{ nullptr, nullptr, 0, 0 } // terminator
 };
 
-WebSocketServer::WebSocketServer( int port, const string certPath, const string& keyPath )
+WebSocketServer::WebSocketServer( int port, const string & certPath, const string& keyPath )
 {
     this->_port     = port;
     this->_certPath = certPath;
@@ -135,6 +173,7 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     // allows us to call instance variables from the outside.  Unfortunately this
     // means some attributes must be public that otherwise would be private.
     webSocketServer = this;
+    read_users("users.json", users);
 }
 
 WebSocketServer::~WebSocketServer( )
@@ -221,15 +260,11 @@ void WebSocketServer::_removeConnection( int socketID )
 
 void WebSocketServer::broadcast_log(const string &data) {
     for(auto & id_and_connection: this->connections) {
-        if (id_and_connection.second->hasPermission("logs")) {
+        auto & user = users[id_and_connection.second->getUser()];
+        if (user.hasPermission("logs")) {
             id_and_connection.second->push_to_buffer(data);
         }
     }
-}
-
-bool Connection::hasPermission(const string & permission) {
-    return std::find(this->permissions.begin(), this->permissions.end(), permission)
-        != this->permissions.end();
 }
 
 time_t Connection::getCreateTime() const {

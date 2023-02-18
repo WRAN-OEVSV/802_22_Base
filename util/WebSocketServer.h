@@ -26,9 +26,9 @@
 #include <sstream>
 #include <vector>
 #include "libwebsockets.h"
+#include "User.h"
 
 using namespace std;
-
 
 
 
@@ -38,11 +38,9 @@ class Connection
     list<string>       buffer;     // Ordered list of pending messages to flush out when socket is writable
     map<string,string> keyValueMap;
     time_t             createTime;
-    string             user;
-    vector<string>     permissions;
+    string user;
 
 public:
-    bool hasPermission(const string & permission);
 
     time_t getCreateTime() const;
 
@@ -68,7 +66,7 @@ public:
     map<int,Connection*> connections;
 
     // Constructor / Destructor
-    WebSocketServer( int port, const string certPath = "", const string& keyPath = "" );
+    WebSocketServer( int port, const string & certPath = "", const string& keyPath = "" );
     ~WebSocketServer( );
 
     void run(       uint64_t timeout = 50     );
@@ -102,6 +100,7 @@ private:
     string               _keyPath;
     string               _certPath;
     struct lws_context  *_context;
+    map<string, User> users;
 
     void _removeConnection( int socketID );
 };
