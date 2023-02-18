@@ -54,7 +54,7 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
         "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
         "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
-)
+        "${PROJECT_SOURCE_DIR}/util/User.cpp")
 
 set(WRAN_INCLUDES
         "${PROJECT_SOURCE_DIR}"
