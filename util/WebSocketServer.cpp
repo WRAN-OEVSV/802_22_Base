@@ -104,7 +104,6 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     info.extensions = lws_get_internal_extensions( );
 #endif
 
-#ifdef LWS_WITH_SSL
     if( !this->_certPath.empty( ) && !this->_keyPath.empty( ) )
     {
         //Util::log( "Using SSL certPath=" + this->_certPath + ". keyPath=" + this->_keyPath + "." );
@@ -117,7 +116,6 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
         info.ssl_cert_filepath        = NULL;
         info.ssl_private_key_filepath = NULL;
     }
-#endif
     info.gid = -1;
     info.uid = -1;
     info.options = 0;
