@@ -27,7 +27,7 @@ using namespace std;
 #define MAX_BUFFER_SIZE 0
 
 // Nasty hack because certain callbacks are statically defined
-WebSocketServer *self;
+WebSocketServer *webSocketServer;
 
 static int callback_main(   struct lws *wsi,
                             enum lws_callback_reasons reason,
@@ -39,37 +39,38 @@ static int callback_main(   struct lws *wsi,
 
     switch( reason ) {
         case LWS_CALLBACK_ESTABLISHED:
-            self->onConnectWrapper( lws_get_socket_fd( wsi ) );
+            webSocketServer->onConnectWrapper(lws_get_socket_fd(wsi ) );
             lws_callback_on_writable( wsi );
             break;
 
-        case LWS_CALLBACK_SERVER_WRITEABLE:
-            fd = lws_get_socket_fd( wsi );
+        case LWS_CALLBACK_SERVER_WRITEABLE: {
+            fd = lws_get_socket_fd(wsi);
 
-            while( !self->connections[fd]->buffer.empty( ) )
-            {
-                const char * message = self->connections[fd]->buffer.front( );
-                auto msgLen = strlen(message);
-                int charsSent = lws_write( wsi, (unsigned char *)message, msgLen, LWS_WRITE_TEXT );
-                if( charsSent < msgLen ) {
-                    std::cout << "check check " << fd << " " << self->connections[fd]->buffer.size() << std::endl;
-                    self->onErrorWrapper( fd, string( "Error writing to socket" ) );
+            auto buffer = webSocketServer->connections[fd]->getBuffer();
+            while (!buffer.empty()) {
+                auto message = buffer.front();
+                auto msgLen = strlen(message.c_str());
+                int charsSent = lws_write(wsi, (unsigned char *) message.c_str(), msgLen, LWS_WRITE_TEXT);
+                if (charsSent < msgLen) {
+                    std::cout << "check check " << fd << " " << buffer.size() << std::endl;
+                    webSocketServer->onErrorWrapper(fd, string("Error writing to socket"));
                     break;  // added as there is a bug when the fd is remove on error and the while is still running
-                }
-                else
+                } else {
                     // Only pop the message if it was sent successfully.
-                    self->connections[fd]->buffer.pop_front( );
+                    buffer.pop_front();
+                }
             }
 
             lws_callback_on_writable( wsi );
             break;
+        }
 
         case LWS_CALLBACK_RECEIVE:
-            self->onMessage( lws_get_socket_fd( wsi ), string( (const char *)in, len ) );
+            webSocketServer->onMessage(lws_get_socket_fd(wsi ), string((const char *)in, len ) );
             break;
 
         case LWS_CALLBACK_CLOSED:
-            self->onDisconnectWrapper( lws_get_socket_fd( wsi ) );
+            webSocketServer->onDisconnectWrapper(lws_get_socket_fd(wsi ) );
             break;
 
         default:
@@ -103,6 +104,7 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     info.extensions = lws_get_internal_extensions( );
 #endif
 
+#ifdef LWS_WITH_SSL
     if( !this->_certPath.empty( ) && !this->_keyPath.empty( ) )
     {
         //Util::log( "Using SSL certPath=" + this->_certPath + ". keyPath=" + this->_keyPath + "." );
@@ -115,6 +117,7 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
         info.ssl_cert_filepath        = NULL;
         info.ssl_private_key_filepath = NULL;
     }
+#endif
     info.gid = -1;
     info.uid = -1;
     info.options = 0;
@@ -133,7 +136,7 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     // Some of the libwebsocket stuff is define statically outside the class. This
     // allows us to call instance variables from the outside.  Unfortunately this
     // means some attributes must be public that otherwise would be private.
-    self = this;
+    webSocketServer = this;
 }
 
 WebSocketServer::~WebSocketServer( )
@@ -150,7 +153,7 @@ WebSocketServer::~WebSocketServer( )
 void WebSocketServer::onConnectWrapper( int socketID )
 {
     auto* c = new Connection;
-    c->createTime = time(nullptr);
+    c->setCreateTime(time(nullptr));
     this->connections[ socketID ] = c;
     this->onConnect( socketID );
 }
@@ -172,7 +175,7 @@ void WebSocketServer::onErrorWrapper( int socketID, const string& message )
 void WebSocketServer::send( int socketID, const string& data )
 {
     // Push this onto the buffer. It will be written out when the socket is writable.
-    this->connections[socketID]->buffer.push_back( data.c_str() );
+    this->connections[socketID]->push_to_buffer( data );
 }
 
 void WebSocketServer::broadcast(const string& data )
@@ -184,12 +187,12 @@ void WebSocketServer::broadcast(const string& data )
 
 void WebSocketServer::setValue( int socketID, const string& name, const string& value )
 {
-    this->connections[socketID]->keyValueMap[name] = value;
+    (*this->connections[socketID])[name] = value;
 }
 
 string WebSocketServer::getValue( int socketID, const string& name )
 {
-    return this->connections[socketID]->keyValueMap[name];
+    return (*this->connections[socketID])[name];
 }
 int WebSocketServer::getNumberOfConnections( )
 {
@@ -217,3 +220,42 @@ void WebSocketServer::_removeConnection( int socketID )
     this->connections.erase( socketID );
     delete c;
 }
+
+void WebSocketServer::broadcast_log(const string &data) {
+    for(auto & id_and_connection: this->connections) {
+        if (id_and_connection.second->hasPermission("logs")) {
+            id_and_connection.second->push_to_buffer(data);
+        }
+    }
+}
+
+bool Connection::hasPermission(const string & permission) {
+    return std::find(this->permissions.begin(), this->permissions.end(), permission)
+        != this->permissions.end();
+}
+
+time_t Connection::getCreateTime() const {
+    return createTime;
+}
+
+void Connection::setCreateTime(time_t createTime) {
+    Connection::createTime = createTime;
+}
+
+const string &Connection::getUser() const {
+    return user;
+}
+
+void Connection::setUser(const string &user) {
+    Connection::user = user;
+}
+
+void Connection::push_to_buffer(const string &buffer) {
+    this->buffer.push_back(buffer);
+}
+
+const list<string> &Connection::getBuffer() {
+    return this->buffer;
+}
+
+string &Connection::operator[](const string &key) { return keyValueMap[key]; }

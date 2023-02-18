@@ -48,14 +48,13 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyFrameSync.cpp"
+        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.cpp"
         "${PROJECT_SOURCE_DIR}/util/log.cpp"
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
         "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
         "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
-        "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.h"
-        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.cpp"
-        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.h")
+)
 
 set(WRAN_INCLUDES
         "${PROJECT_SOURCE_DIR}"
@@ -66,7 +65,7 @@ set(WRAN_INCLUDES
         "${CMAKE_BINARY_DIR}/_deps/liquid-build/include/liquid"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/include/"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/"
-        )
+)
 
 
 # LimeSuite

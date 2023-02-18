@@ -24,24 +24,44 @@
 #include <sys/time.h>
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include "libwebsockets.h"
 
 using namespace std;
 
-/////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////
+
+
+
+// Represents a client connection
+class Connection
+{
+    list<string>       buffer;     // Ordered list of pending messages to flush out when socket is writable
+    map<string,string> keyValueMap;
+    time_t             createTime;
+    string             user;
+    vector<string>     permissions;
+
+public:
+    bool hasPermission(const string & permission);
+
+    time_t getCreateTime() const;
+
+    void setCreateTime(time_t createTime);
+
+    const string &getUser() const;
+
+    const list<string> & getBuffer();
+
+    void setUser(const string &user);
+    void push_to_buffer(const string & buffer);
+    string& operator[](const string & key);
+};
+
 /// WebSocketServer
 /// ---------
 class WebSocketServer
 {
 public:
-    // Represents a client connection
-    struct Connection
-    {
-        list<const char*>       buffer;     // Ordered list of pending messages to flush out when socket is writable
-        map<string,string> keyValueMap;
-        time_t             createTime;
-    };
 
     // Manages connections. Unfortunately this is public because static callback for
     // libwebsockets is defined outside the instance and needs access to it.
@@ -55,6 +75,7 @@ public:
     void wait(      uint64_t timeout = 50     );
     void send(      int socketID, const string& data );
     void broadcast( const string& data               );
+    void broadcast_log(const string& data);
 
     // Key => value storage for each connection
     string getValue( int socketID, const string& name );
@@ -85,5 +106,6 @@ private:
     void _removeConnection( int socketID );
 };
 
+extern WebSocketServer *webSocketServer;
 // WebSocketServer.h
 #endif

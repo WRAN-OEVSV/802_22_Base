@@ -4,7 +4,7 @@
 // screen.
 
 #include "util/ws_spectrogram.h"
-
+#include <nlohmann/json.hpp>
 
 
 /*
@@ -209,26 +209,18 @@ void wsSpectrogram::onMessage(int socketID, const string& data) {
 
     LOG_TEST_INFO("User click: {} ", data);
 
-    std::string cmd;
+    nlohmann::json json_data = nlohmann::json::parse(data);
     int par = 0;
 
-    if (data.find_first_of(':') > 0)
-    {
-        cmd = data.substr(0, data.find_first_of(':'));
+    if (!json_data.contains("cmd")) {
+        return;
     }
-
-
-    if (data.find_first_of(':') > 0)
-    {
+    std::string cmd = json_data["cmd"];
+    if (!cmd.empty() && std::all_of(cmd.begin(), cmd.end(), ::isdigit)) {
+        // it is an integer command code
         par = stoi(data.substr(data.find_first_of(':') + 1));
+        LOG_TEST_INFO("cmd: {} par: {} ", cmd, par);
     }
-
-
-    LOG_TEST_INFO("cmd: {} par: {} ", cmd, par);
-
-
-
-
 }
 
 void wsSpectrogram::onDisconnect(int socketID) {
@@ -240,7 +232,6 @@ void wsSpectrogram::onDisconnect(int socketID) {
 }
 
 void wsSpectrogram::onError(int socketID, const string& message) {
-
     LOG_TEST_ERROR("wsSpectrogram::onError() socketID # {} - {} ", socketID, message);
 }
 
