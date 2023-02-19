@@ -38,7 +38,7 @@ class Connection
     list<string>       buffer;     // Ordered list of pending messages to flush out when socket is writable
     map<string,string> keyValueMap;
     time_t             createTime;
-    string user;
+    string user{"anonymous"};
 
 public:
 
@@ -91,6 +91,15 @@ public:
     void onConnectWrapper(    int socketID );
     void onDisconnectWrapper( int socketID );
     void onErrorWrapper( int socketID, const string& message );
+
+    /**
+     * Try to authenticate the user against the user database.
+     * @param socketId socket id (if it is a positive integer, we will notify the user)
+     * @param user user name
+     * @param pass user password
+     * @return true on success
+     */
+    bool authenticate(int socketId, const std::string & user, const std::string & pass);
 
 protected:
     // Nothing, yet.

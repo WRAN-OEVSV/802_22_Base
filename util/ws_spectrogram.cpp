@@ -89,9 +89,6 @@ void wsSpectrogram::run() {
     // options
     unsigned int nfft        =  512;    // transform size
 
-    unsigned int i;
-    unsigned int n;
-
     while(!stopping)
     {
 
@@ -107,12 +104,11 @@ void wsSpectrogram::run() {
 
             m_IQdataQueue->pop(m_IQdataOut);
 
-            int samplesCnt = m_IQdataOut->data.size();
-
             liquid_float_complex x[m_IQdataOut->data.size()];
 
 
-            i = 0;
+
+            unsigned int i = 0;
             for(auto sample: m_IQdataOut->data)
             {
                 // x[i].real(sample.real());
@@ -150,16 +146,16 @@ void wsSpectrogram::run() {
                 // m_msgSOCKET << "],";
                 m_msgSOCKET << "\"s\":[";
 
-                int i = 0;
+                int j = 0;
 
-                while (i < nfft)
+                while (j < nfft)
                 {
                     m_msgSOCKET << std::to_string((int)sp_psd[i]);
-                    if (i < nfft - 1)
+                    if (j < nfft - 1)
                     {
                         m_msgSOCKET << ",";
                     }
-                    i++;
+                    j++;
                 }
                 m_msgSOCKET << "]}";
                 // msgSOCKET.seekp(-1, std::ios_base::end);
@@ -210,16 +206,22 @@ void wsSpectrogram::onMessage(int socketID, const string& data) {
     LOG_TEST_INFO("User click: {} ", data);
 
     nlohmann::json json_data = nlohmann::json::parse(data);
-    int par = 0;
 
-    if (!json_data.contains("cmd")) {
+    if (!json_data.contains("cmd") || !json_data["cmd"].is_string()) {
         return;
     }
     std::string cmd = json_data["cmd"];
     if (!cmd.empty() && std::all_of(cmd.begin(), cmd.end(), ::isdigit)) {
         // it is an integer command code
-        par = stoi(data.substr(data.find_first_of(':') + 1));
+        auto par = stoi(data.substr(data.find_first_of(':') + 1));
         LOG_TEST_INFO("cmd: {} par: {} ", cmd, par);
+    } else {
+        // it is not a purly numeric command - lets find out what the user wants
+        if (cmd == "authenticate") {
+            std::string username{json_data["user"]};
+            std::string password{json_data["password"]};
+            authenticate(socketID, username, password);
+        }
     }
 }
 

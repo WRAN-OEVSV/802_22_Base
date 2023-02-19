@@ -20,6 +20,7 @@
 #include "util/WebSocketServer.h"
 #include "User.h"
 #include "log.h"
+#include "Argon2Wrapper.h"
 
 #define LWS_NO_EXTENSIONS 1
 
@@ -42,7 +43,7 @@ void read_users(const string & file_name, map<string, User> & users) {
     nlohmann::json users_json = nlohmann::json::parse(users_file);
     users_file.close();
     if(!users_json.is_array()) {
-        LOG_TEST_ERROR("asdf");
+        LOG_TEST_ERROR("we got an invalid type - ignore the user file");
         return;
     }
     for (auto & item: users_json) {
@@ -264,6 +265,30 @@ void WebSocketServer::broadcast_log(const string &data) {
         if (user.hasPermission("logs")) {
             id_and_connection.second->push_to_buffer(data);
         }
+    }
+}
+
+bool WebSocketServer::authenticate(int socketId, const std::string & user, const std::string & pass) {
+    if (users.count(user) <= 0) {
+        LOG_TEST_INFO("Error: User {} does not exist", user);
+        if (socketId < 0) {
+            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
+        }
+        return false;
+    }
+    auto & user0 = users[user];
+    Argon2Wrapper argon2;
+    if (argon2.verifyHash(pass, user0.getPasswordHash())) {
+        if (socketId < 0) { // if we have a socket - send a notification
+            connections[socketId]->setUser(user);
+            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Authenticated Successfully"}})");
+        }
+        return true;
+    } else {
+        if (socketId < 0) { // if we have a socket - send a notification
+            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
+        }
+        return false;
     }
 }
 
