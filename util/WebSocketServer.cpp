@@ -15,6 +15,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <fstream>
+#include <queue>
 #include <nlohmann/json.hpp>
 #include "libwebsockets.h"
 #include "util/WebSocketServer.h"
@@ -85,18 +86,21 @@ static int callback_main(   struct lws *wsi,
         case LWS_CALLBACK_SERVER_WRITEABLE: {
             fd = lws_get_socket_fd(wsi);
 
-            auto buffer = webSocketServer->connections[fd]->getBuffer();
-            while (!buffer.empty()) {
-                auto message = buffer.front();
-                auto msgLen = strlen(message.c_str());
-                int charsSent = lws_write(wsi, (unsigned char *) message.c_str(), msgLen, LWS_WRITE_TEXT);
-                if (charsSent < msgLen) {
-                    std::cout << "check check " << fd << " " << buffer.size() << std::endl;
+            auto * buffer = webSocketServer->connections[fd]->getBuffer();
+            while (buffer != nullptr && !buffer->empty()) {
+                const auto message = buffer->front();
+                char buf[LWS_PRE + message.length()];
+                ::memset(buf, 0, LWS_PRE);
+                ::strcpy(buf + LWS_PRE, message.c_str());
+                int charsSent = lws_write(wsi, (unsigned char *) buf + LWS_PRE, message.length(), LWS_WRITE_TEXT);
+                //int charsSent = lws_write(wsi, (unsigned char *) "asdf", ::strlen("asdf"), LWS_WRITE_TEXT);
+                if (charsSent < message.length()) {
+                    std::cout << "check check " << fd << " " << buffer->size() << std::endl;
                     webSocketServer->onErrorWrapper(fd, string("Error writing to socket"));
                     break;  // added as there is a bug when the fd is remove on error and the while is still running
                 } else {
                     // Only pop the message if it was sent successfully.
-                    buffer.pop_front();
+                    buffer->pop();
                 }
             }
 
@@ -309,11 +313,11 @@ void Connection::setUser(const string &user) {
 }
 
 void Connection::push_to_buffer(const string &buffer) {
-    this->buffer.push_back(buffer);
+    this->buffer.push(buffer);
 }
 
-const list<string> &Connection::getBuffer() {
-    return this->buffer;
+queue<string> *Connection::getBuffer() {
+    return &(this->buffer);
 }
 
 string &Connection::operator[](const string &key) { return keyValueMap[key]; }

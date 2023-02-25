@@ -59,7 +59,9 @@ void wsSpectrogram::threadMain() {
     try {
         run();
     }
-    catch (...) {
+    catch (std::exception & exception) {
+        string message = string("Exiting due to Error ") + string(exception.what());
+        LOG_TEST_ERROR(message);
         terminated.store(true);
         stopping.store(true);
         throw;
@@ -205,22 +207,37 @@ void wsSpectrogram::onMessage(int socketID, const string& data) {
 
     LOG_TEST_INFO("User click: {} ", data);
 
-    nlohmann::json json_data = nlohmann::json::parse(data);
+    nlohmann::json json_data;
+    try {
+        json_data = nlohmann::json::parse(data);
+    } catch (std::exception & exception) {
+        LOG_TEST_ERROR("JSON ERROR" + string(exception.what()));
+        this->send(socketID, R"({"type": "error", "message": "message not parsable"})");
+        return;
+    }
 
     if (!json_data.contains("cmd") || !json_data["cmd"].is_string()) {
         return;
     }
     std::string cmd = json_data["cmd"];
-    if (!cmd.empty() && std::all_of(cmd.begin(), cmd.end(), ::isdigit)) {
-        // it is an integer command code
-        auto par = stoi(data.substr(data.find_first_of(':') + 1));
-        LOG_TEST_INFO("cmd: {} par: {} ", cmd, par);
-    } else {
-        // it is not a purly numeric command - lets find out what the user wants
-        if (cmd == "authenticate") {
-            std::string username{json_data["user"]};
-            std::string password{json_data["password"]};
-            authenticate(socketID, username, password);
+    if (cmd == "authenticate") {
+        std::string username{json_data["user"]};
+        std::string password{json_data["password"]};
+        authenticate(socketID, username, password);
+    } else if (cmd == "bandwidth") {
+        if (json_data["arg"].is_number_integer()) {
+            int arg = json_data["arg"].get<int>();
+            LOG_TEST_INFO("arg value is {}", arg);
+        }
+    } else if (cmd == "band") {
+        if (json_data["arg"].is_number_integer()) {
+            int arg = json_data["arg"].get<int>();
+            LOG_TEST_INFO("arg value is {}", arg);
+        }
+    } else if (cmd == "channel") {
+        if (json_data["arg"].is_number_integer()) {
+            int arg = json_data["arg"].get<int>();
+            LOG_TEST_INFO("arg value is {}", arg);
         }
     }
 }

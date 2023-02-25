@@ -17,6 +17,7 @@
 #define _WEBSOCKETSERVER_H
 #include <cstdint>
 #include <map>
+#include <queue>
 #include <string>
 #include <list>
 #include <cstdio>
@@ -35,7 +36,7 @@ using namespace std;
 // Represents a client connection
 class Connection
 {
-    list<string>       buffer;     // Ordered list of pending messages to flush out when socket is writable
+    queue<string>       buffer;     // Ordered list of pending messages to flush out when socket is writable
     map<string,string> keyValueMap;
     time_t             createTime;
     string user{"anonymous"};
@@ -48,7 +49,7 @@ public:
 
     const string &getUser() const;
 
-    const list<string> & getBuffer();
+    queue<string> * getBuffer();
 
     void setUser(const string &user);
     void push_to_buffer(const string & buffer);
