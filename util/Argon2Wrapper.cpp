@@ -19,7 +19,15 @@ Argon2Wrapper::Argon2Wrapper(uint32_t iterations, uint32_t memory, uint32_t para
 }
 
 bool Argon2Wrapper::verifyHash(std::string password, std::string hash) {
-    return argon2d_verify(hash.c_str(), password.c_str(), password.size()) == ARGON2_OK;
+    if (hash.rfind("$argon2id") == 0) {
+        return argon2id_verify(hash.c_str(), password.c_str(), password.size()) == ARGON2_OK;
+    } else if (hash.rfind("$argon2i") == 0) {
+        return argon2i_verify(hash.c_str(), password.c_str(), password.size()) == ARGON2_OK;
+    } else if (hash.rfind("$argon2d") == 0) {
+        return argon2d_verify(hash.c_str(), password.c_str(), password.size()) == ARGON2_OK;
+    } else {
+        return false; // the hash is not valid
+    }
 }
 
 std::string Argon2Wrapper::generateHash(std::string password) {

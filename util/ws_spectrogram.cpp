@@ -221,9 +221,14 @@ void wsSpectrogram::onMessage(int socketID, const string& data) {
     }
     std::string cmd = json_data["cmd"];
     if (cmd == "authenticate") {
-        std::string username{json_data["user"]};
-        std::string password{json_data["password"]};
-        authenticate(socketID, username, password);
+        if (json_data.contains("user") && json_data["user"].is_string() &&
+            json_data.contains("password") && json_data["password"].is_string()) {
+            std::string username{json_data["user"]};
+            std::string password{json_data["password"]};
+            authenticate(socketID, username, password);
+        } else {
+            send(socketID, R"({"auth": {"message": "Invalid Request"}})");
+        }
     } else if (cmd == "bandwidth") {
         if (json_data["arg"].is_number_integer()) {
             int arg = json_data["arg"].get<int>();

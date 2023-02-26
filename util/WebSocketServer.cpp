@@ -66,6 +66,7 @@ void read_users(const string & file_name, map<string, User> & users) {
                 }
             }
         }
+        users[user.getUsername()] = user;
     }
 }
 
@@ -275,7 +276,7 @@ void WebSocketServer::broadcast_log(const string &data) {
 bool WebSocketServer::authenticate(int socketId, const std::string & user, const std::string & pass) {
     if (users.count(user) <= 0) {
         LOG_TEST_INFO("Error: User {} does not exist", user);
-        if (socketId < 0) {
+        if (socketId > 0) {
             connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
         }
         return false;
@@ -283,13 +284,22 @@ bool WebSocketServer::authenticate(int socketId, const std::string & user, const
     auto & user0 = users[user];
     Argon2Wrapper argon2;
     if (argon2.verifyHash(pass, user0.getPasswordHash())) {
-        if (socketId < 0) { // if we have a socket - send a notification
+        if (socketId > 0) { // if we have a socket - send a notification
             connections[socketId]->setUser(user);
-            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Authenticated Successfully"}})");
+            nlohmann::json j = {
+                {"auth", {
+                    {"message", "Authenticated Successfully"},
+                    {"userdata", {
+                        {"username", user0.getUsername()},
+                        {"permissions", user0.getPermissions()}
+                    }}
+                }}
+            };
+            connections[socketId]->push_to_buffer(j.dump());
         }
         return true;
     } else {
-        if (socketId < 0) { // if we have a socket - send a notification
+        if (socketId> 0) { // if we have a socket - send a notification
             connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
         }
         return false;
