@@ -19,8 +19,8 @@ add_definitions(-march=native)
 add_definitions(-mfpmath=sse)
 
 #set build type to distinguish DEBUG, RELEASE and CPE, BASE
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE CPE)
 #set(CMAKE_BUILD_TYPE BASE)
 
@@ -48,7 +48,6 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyFrameSync.cpp"
-        "${PROJECT_SOURCE_DIR}/util/WebSocketSink.cpp"
         "${PROJECT_SOURCE_DIR}/util/log.cpp"
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
@@ -90,6 +89,9 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # fetch libwebsockets and add library
+# uncomment to disable TLS
+set(LWS_WITH_SSL OFF)
+
 FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.1.6.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
 FetchContent_MakeAvailable(libwebsockets)
 add_library(websockets-fixed INTERFACE)

@@ -148,6 +148,7 @@ WebSocketServer::WebSocketServer( int port, const string & certPath, const strin
     info.extensions = lws_get_internal_extensions( );
 #endif
 
+#ifdef LWS_WITH_SSL
     if( !this->_certPath.empty( ) && !this->_keyPath.empty( ) )
     {
         //Util::log( "Using SSL certPath=" + this->_certPath + ". keyPath=" + this->_keyPath + "." );
@@ -160,6 +161,7 @@ WebSocketServer::WebSocketServer( int port, const string & certPath, const strin
         info.ssl_cert_filepath        = NULL;
         info.ssl_private_key_filepath = NULL;
     }
+#endif
     info.gid = -1;
     info.uid = -1;
     info.options = 0;
@@ -224,7 +226,7 @@ void WebSocketServer::send( int socketID, const string& data )
 void WebSocketServer::broadcast(const string& data )
 {
     for(auto & connection : this->connections) {
-        this->send(connection.first, data);
+        //this->send(connection.first, data);
     }
 }
 
@@ -265,10 +267,15 @@ void WebSocketServer::_removeConnection( int socketID )
 }
 
 void WebSocketServer::broadcast_log(const string &data) {
+    if (this->connections.empty()) return;
+
     for(auto & id_and_connection: this->connections) {
         auto & user = users[id_and_connection.second->getUser()];
-        if (user.hasPermission("logs")) {
-            id_and_connection.second->push_to_buffer(data);
+        if (user.hasPermission("read_log")) {
+            nlohmann::json j = {
+                    {"log", {{"message", data}}}
+            };
+            id_and_connection.second->push_to_buffer(j.dump());
         }
     }
 }
