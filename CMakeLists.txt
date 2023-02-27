@@ -2,7 +2,7 @@
 ## Create WRAN project
 ########################################################################
 cmake_minimum_required(VERSION 3.18.1)
-project("WRAN" DESCRIPTION "WRAN 802.22 HAMNET" LANGUAGES CXX)
+project("WRAN" DESCRIPTION "WRAN 802.22 HAMNET" LANGUAGES CXX C)
 
 
 ########################################################################
@@ -146,19 +146,21 @@ if (liquid_ADDED)
     target_link_libraries( liquid::liquid INTERFACE "${liquid_LIBRARY}")
 endif()
 
-# start argon2
-set(argon2_BINARY_DIR external/argon2)
-execute_process( COMMAND "make"
-        WORKING_DIRECTORY ${argon2_BINARY_DIR}
-        RESULT_VARIABLE A2_RESULT OUTPUT_VARIABLE
-        A2_OUTPUT ERROR_VARIABLE A2_ERROR)
-find_library(argon2 argon2 ${argon2_BINARY_DIR})
+# compile argon2 by hand
+set(ARGON2_SOURCES
+   external/argon2/src/argon2.c
+   external/argon2/src/core.c
+   external/argon2/src/thread.c
+   external/argon2/src/opt.c
+   external/argon2/src/encoding.c
+   external/argon2/src/blake2/blake2b.c
+)
 # end argon2
 
 # create radio_test executable; used for testing sdr and phy topics at the moment
-add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
+add_executable(radio_test radio_test.cpp ${WRAN_SOURCES} ${ARGON2_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
-target_link_libraries(radio_test liquid::liquid websockets ${argon2} LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 #target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
