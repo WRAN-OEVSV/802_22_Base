@@ -89,8 +89,6 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # fetch libwebsockets and add library
-# uncomment to disable TLS
-set(LWS_WITH_SSL OFF)
 
 FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.1.6.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
 FetchContent_MakeAvailable(libwebsockets)
