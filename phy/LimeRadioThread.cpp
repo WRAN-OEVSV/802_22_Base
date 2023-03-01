@@ -83,7 +83,7 @@ void LimeRadioThread::run() {
             int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
 
             //I and Q samples are interleaved in buffer: IQIQIQ...
-            float *pp = (float *)m_rxIQbuffer;
+            auto *pp = (float *)m_rxIQbuffer;
             liquid_float_complex s;
 
             // @tcheck  suboptimal ??  
@@ -119,10 +119,10 @@ void LimeRadioThread::run() {
             // get queue item
             if(m_IQdataTXQueue->pop(m_txIQdataOut)) {
 
-                int samplesWrite = m_txIQdataOut->data.size();
+                auto samplesWrite = m_txIQdataOut->data.size();
 
                 //I and Q samples are interleaved in buffer: IQIQIQ...
-                float *pp = (float *)m_txIQbuffer;
+                auto *pp = (float *)m_txIQbuffer;
                 liquid_float_complex s;
 
                 if(samplesWrite > 0)

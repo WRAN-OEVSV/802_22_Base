@@ -13,3 +13,6 @@
 [submodule "external/libusb"]
 	path = external/libusb
 	url = https://github.com/libusb/libusb
+[submodule "external/argon2"]
+	path = external/argon2
+	url = https://github.com/P-H-C/phc-winner-argon2.git

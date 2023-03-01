@@ -72,7 +72,7 @@ int main(int argc, const char* argv[])
       ("l", "gpio test")
     ;
 
-    auto result = options.parse(argc,argv);
+    auto result = options.parse(argc, argv);
 
     if(result.count("help")) {
         std::cout << options.help({""}) << std::endl;
