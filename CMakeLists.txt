@@ -90,7 +90,7 @@ find_package(Threads REQUIRED)
 
 # fetch libwebsockets and add library
 
-FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.1.6.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
+FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.3.2.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
 FetchContent_MakeAvailable(libwebsockets)
 add_library(websockets-fixed INTERFACE)
 target_include_directories(websockets-fixed
