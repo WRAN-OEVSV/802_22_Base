@@ -19,10 +19,14 @@ add_definitions(-march=native)
 add_definitions(-mfpmath=sse)
 
 #set build type to distinguish DEBUG, RELEASE and CPE, BASE
-set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+## IMPORTANT this must stay on Release for the moment as it affects the external libraries especially limesuite
+## which has zero performance if it is running in DEBUG mode
+set(CMAKE_BUILD_TYPE Release)  
 #set(CMAKE_BUILD_TYPE CPE)
 #set(CMAKE_BUILD_TYPE BASE)
+
+## a dedicated BUILD_TYPE must be used for the WRAN project
 
 # CPM cmake dependency manager
 set(CPM_DOWNLOAD_VERSION 0.34.0)
