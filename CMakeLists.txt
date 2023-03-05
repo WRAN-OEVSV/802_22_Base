@@ -2,7 +2,7 @@
 ## Create WRAN project
 ########################################################################
 cmake_minimum_required(VERSION 3.18.1)
-project("WRAN" DESCRIPTION "WRAN 802.22 HAMNET" LANGUAGES CXX)
+project("WRAN" DESCRIPTION "WRAN 802.22 HAMNET" LANGUAGES CXX C)
 
 
 ########################################################################
@@ -19,8 +19,8 @@ add_definitions(-march=native)
 add_definitions(-mfpmath=sse)
 
 #set build type to distinguish DEBUG, RELEASE and CPE, BASE
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE CPE)
 #set(CMAKE_BUILD_TYPE BASE)
 
@@ -52,17 +52,19 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
         "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
-        )
+        "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
+        "${PROJECT_SOURCE_DIR}/util/User.cpp")
 
 set(WRAN_INCLUDES
         "${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/phy"
         "${PROJECT_SOURCE_DIR}/util"
         "${PROJECT_SOURCE_DIR}/external/spdlog/include"
+        "${PROJECT_SOURCE_DIR}/external/argon2/include"
         "${CMAKE_BINARY_DIR}/_deps/liquid-build/include/liquid"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/include/"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/"
-        )
+)
 
 
 # LimeSuite
@@ -87,7 +89,8 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # fetch libwebsockets and add library
-FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.1.6.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
+
+FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.3.2.tar.gz DOWNLOAD_EXTRACT_TIMESTAMP false)
 FetchContent_MakeAvailable(libwebsockets)
 add_library(websockets-fixed INTERFACE)
 target_include_directories(websockets-fixed
@@ -141,8 +144,19 @@ if (liquid_ADDED)
     target_link_libraries( liquid::liquid INTERFACE "${liquid_LIBRARY}")
 endif()
 
+# compile argon2 by hand
+set(ARGON2_SOURCES
+   external/argon2/src/argon2.c
+   external/argon2/src/core.c
+   external/argon2/src/thread.c
+   external/argon2/src/opt.c
+   external/argon2/src/encoding.c
+   external/argon2/src/blake2/blake2b.c
+)
+# end argon2
+
 # create radio_test executable; used for testing sdr and phy topics at the moment
-add_executable(radio_test radio_test.cpp ${WRAN_SOURCES})
+add_executable(radio_test radio_test.cpp ${WRAN_SOURCES} ${ARGON2_SOURCES})
 target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
 target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 #target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)

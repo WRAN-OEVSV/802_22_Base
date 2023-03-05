@@ -14,10 +14,14 @@
 #include <string>
 #include <cstring>
 #include <stdexcept>
+#include <fstream>
+#include <queue>
+#include <nlohmann/json.hpp>
 #include "libwebsockets.h"
 #include "util/WebSocketServer.h"
-
-#include "util/log.h"
+#include "User.h"
+#include "log.h"
+#include "Argon2Wrapper.h"
 
 #define LWS_NO_EXTENSIONS 1
 
@@ -27,7 +31,44 @@ using namespace std;
 #define MAX_BUFFER_SIZE 0
 
 // Nasty hack because certain callbacks are statically defined
-WebSocketServer *self;
+WebSocketServer *webSocketServer;
+
+
+void read_users(const string & file_name, map<string, User> & users) {
+    std::filesystem::path file_name0{file_name};
+    if (!std::filesystem::exists(file_name0)) {
+        LOG_TEST_ERROR("User database {} is missing! Continuing without user support.", file_name);
+        return;
+    }
+    std::ifstream users_file(file_name);
+    nlohmann::json users_json = nlohmann::json::parse(users_file);
+    users_file.close();
+    if(!users_json.is_array()) {
+        LOG_TEST_ERROR("we got an invalid type - ignore the user file");
+        return;
+    }
+    for (auto & item: users_json) {
+        // wrong type
+        if (!item.is_object()) continue;
+        if (!(item.contains("user_name") && item.contains("password_hash") &&
+            item["user_name"].is_string() && item["password_hash"].is_string())) {
+            continue;
+        }
+        User user;
+        user.setPasswordHash(item["password_hash"]);
+        user.setUsername(item["user_name"]);
+        // if permissions is there, we add it
+        if (item.contains("permission") && item["permission"].is_array()) {
+            for (auto & item2: item["permission"]) {
+                if (item2.is_string()) {
+                    string value{item2};
+                    user.addPermission(value);
+                }
+            }
+        }
+        users[user.getUsername()] = user;
+    }
+}
 
 static int callback_main(   struct lws *wsi,
                             enum lws_callback_reasons reason,
@@ -39,37 +80,41 @@ static int callback_main(   struct lws *wsi,
 
     switch( reason ) {
         case LWS_CALLBACK_ESTABLISHED:
-            self->onConnectWrapper( lws_get_socket_fd( wsi ) );
+            webSocketServer->onConnectWrapper(lws_get_socket_fd(wsi ) );
             lws_callback_on_writable( wsi );
             break;
 
-        case LWS_CALLBACK_SERVER_WRITEABLE:
-            fd = lws_get_socket_fd( wsi );
+        case LWS_CALLBACK_SERVER_WRITEABLE: {
+            fd = lws_get_socket_fd(wsi);
 
-            while( !self->connections[fd]->buffer.empty( ) )
-            {
-                const char * message = self->connections[fd]->buffer.front( );
-                auto msgLen = strlen(message);
-                int charsSent = lws_write( wsi, (unsigned char *)message, msgLen, LWS_WRITE_TEXT );
-                if( charsSent < msgLen ) {
-                    std::cout << "check check " << fd << " " << self->connections[fd]->buffer.size() << std::endl;
-                    self->onErrorWrapper( fd, string( "Error writing to socket" ) );
+            auto * buffer = webSocketServer->connections[fd]->getBuffer();
+            while (buffer != nullptr && !buffer->empty()) {
+                const auto message = buffer->front();
+                char buf[LWS_PRE + message.length()];
+                ::memset(buf, 0, LWS_PRE);
+                ::strcpy(buf + LWS_PRE, message.c_str());
+                int charsSent = lws_write(wsi, (unsigned char *) buf + LWS_PRE, message.length(), LWS_WRITE_TEXT);
+                //int charsSent = lws_write(wsi, (unsigned char *) "asdf", ::strlen("asdf"), LWS_WRITE_TEXT);
+                if (charsSent < message.length()) {
+                    std::cout << "check check " << fd << " " << buffer->size() << std::endl;
+                    webSocketServer->onErrorWrapper(fd, string("Error writing to socket"));
                     break;  // added as there is a bug when the fd is remove on error and the while is still running
-                }
-                else
+                } else {
                     // Only pop the message if it was sent successfully.
-                    self->connections[fd]->buffer.pop_front( );
+                    buffer->pop();
+                }
             }
 
             lws_callback_on_writable( wsi );
             break;
+        }
 
         case LWS_CALLBACK_RECEIVE:
-            self->onMessage( lws_get_socket_fd( wsi ), string( (const char *)in, len ) );
+            webSocketServer->onMessage(lws_get_socket_fd(wsi ), string((const char *)in, len ) );
             break;
 
         case LWS_CALLBACK_CLOSED:
-            self->onDisconnectWrapper( lws_get_socket_fd( wsi ) );
+            webSocketServer->onDisconnectWrapper(lws_get_socket_fd(wsi ) );
             break;
 
         default:
@@ -87,7 +132,7 @@ static struct lws_protocols protocols[] = {
     },{ nullptr, nullptr, 0, 0 } // terminator
 };
 
-WebSocketServer::WebSocketServer( int port, const string certPath, const string& keyPath )
+WebSocketServer::WebSocketServer( int port, const string & certPath, const string& keyPath )
 {
     this->_port     = port;
     this->_certPath = certPath;
@@ -133,7 +178,8 @@ WebSocketServer::WebSocketServer( int port, const string certPath, const string&
     // Some of the libwebsocket stuff is define statically outside the class. This
     // allows us to call instance variables from the outside.  Unfortunately this
     // means some attributes must be public that otherwise would be private.
-    self = this;
+    webSocketServer = this;
+    read_users("users.json", users);
 }
 
 WebSocketServer::~WebSocketServer( )
@@ -150,7 +196,7 @@ WebSocketServer::~WebSocketServer( )
 void WebSocketServer::onConnectWrapper( int socketID )
 {
     auto* c = new Connection;
-    c->createTime = time(nullptr);
+    c->setCreateTime(time(nullptr));
     this->connections[ socketID ] = c;
     this->onConnect( socketID );
 }
@@ -172,7 +218,7 @@ void WebSocketServer::onErrorWrapper( int socketID, const string& message )
 void WebSocketServer::send( int socketID, const string& data )
 {
     // Push this onto the buffer. It will be written out when the socket is writable.
-    this->connections[socketID]->buffer.push_back( data.c_str() );
+    this->connections[socketID]->push_to_buffer( data );
 }
 
 void WebSocketServer::broadcast(const string& data )
@@ -184,12 +230,12 @@ void WebSocketServer::broadcast(const string& data )
 
 void WebSocketServer::setValue( int socketID, const string& name, const string& value )
 {
-    this->connections[socketID]->keyValueMap[name] = value;
+    (*this->connections[socketID])[name] = value;
 }
 
 string WebSocketServer::getValue( int socketID, const string& name )
 {
-    return this->connections[socketID]->keyValueMap[name];
+    return (*this->connections[socketID])[name];
 }
 int WebSocketServer::getNumberOfConnections( )
 {
@@ -217,3 +263,76 @@ void WebSocketServer::_removeConnection( int socketID )
     this->connections.erase( socketID );
     delete c;
 }
+
+void WebSocketServer::broadcast_log(const string &data) {
+    if (this->connections.empty()) return;
+
+    for(auto & id_and_connection: this->connections) {
+        auto & user = users[id_and_connection.second->getUser()];
+        if (user.hasPermission("read_log")) {
+            nlohmann::json j = {
+                    {"log", {{"message", data}}}
+            };
+            id_and_connection.second->push_to_buffer(j.dump());
+        }
+    }
+}
+
+bool WebSocketServer::authenticate(int socketId, const std::string & user, const std::string & pass) {
+    if (users.count(user) <= 0) {
+        LOG_TEST_INFO("Error: User {} does not exist", user);
+        if (socketId > 0) {
+            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
+        }
+        return false;
+    }
+    auto & user0 = users[user];
+    Argon2Wrapper argon2;
+    if (argon2.verifyHash(pass, user0.getPasswordHash())) {
+        if (socketId > 0) { // if we have a socket - send a notification
+            connections[socketId]->setUser(user);
+            nlohmann::json j = {
+                {"auth", {
+                    {"message", "Authenticated Successfully"},
+                    {"userdata", {
+                        {"username", user0.getUsername()},
+                        {"permissions", user0.getPermissions()}
+                    }}
+                }}
+            };
+            connections[socketId]->push_to_buffer(j.dump());
+        }
+        return true;
+    } else {
+        if (socketId> 0) { // if we have a socket - send a notification
+            connections[socketId]->push_to_buffer(R"({"auth": {"message": "Password Wrong"}})");
+        }
+        return false;
+    }
+}
+
+time_t Connection::getCreateTime() const {
+    return createTime;
+}
+
+void Connection::setCreateTime(time_t createTime) {
+    Connection::createTime = createTime;
+}
+
+const string &Connection::getUser() const {
+    return user;
+}
+
+void Connection::setUser(const string &user) {
+    Connection::user = user;
+}
+
+void Connection::push_to_buffer(const string &buffer) {
+    this->buffer.push(buffer);
+}
+
+queue<string> *Connection::getBuffer() {
+    return &(this->buffer);
+}
+
+string &Connection::operator[](const string &key) { return keyValueMap[key]; }

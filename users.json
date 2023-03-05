@@ -1,0 +1,7 @@
+[
+  {
+    "user_name": "test",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$dGVzdHRlc3R0ZXN0$43A3+b/6hYvO68dI8izPlUW8A5Y4KCScQhq/3R90FqE",
+    "permission": ["read_log"]
+  }
+]
