@@ -18,8 +18,8 @@
 
 <h1>Overview</h1>
 WRAN (Wireless Regional Area Network) is a new digital radio transmission mode (Super Wi-Fi) developed by Radio Amateurs in Austria allowing high speed data communication in Sub-GHz Frequency bands.<br><br>
-Requirements for the new communication system are to support sufficient bandwidth for each user, and enables multiple users at the same time to connect to a base station.
-The implementation of the new digital transmission mode is based on the concept of a software defined radio using the LimeSDR ecosystem. The Open SDR Platform addresses developers building software for radio communication and integrates artificial intelligence (AI) into radio transmission and propagation.<br><br>
+Requirements for the new communication system are to support sufficient bandwidth for each user, and to enable multiple users at the same time to connect to a base station.
+The implementation of the new digital transmission mode is based on the concept of a software defined radio using the LimeSDR ecosystem and the builds on the IEEE 802.22 standard. The Open SDR Platform addresses developers building software for radio communication and integrates artificial intelligence (AI) into radio transmission and propagation.<br><br>
 Hardware and software are designed as kit, the RPX-100, which allows a modular use and supports all possible Sub-GHz frequency bands.<br><br>
 <p align="center"><img src="doc/img/BlockDiagram2023.png" height="400" alt="Concept Modem"></p>
 <h1>RPX-100 Transceiver Kit</h1>
