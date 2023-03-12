@@ -4,7 +4,7 @@
     <td>
     <b>Open SDR Platform</b><br><br>
         <img src="doc/img/Austria.jpg" height="11"> Austria:<br>
-        OE1RSA, OE1VMC, OE3AEB, OE3BIA, OE9RIR, OE9RWV<br><br>
+        OE3BIA, OE9RIR, OE9RWV, Fabian (OE9xxx)<br><br>
         <img src="doc/img/France.jpg" height="11"> France:<br>         
         F4VVO<br><br>
         Web: <a href="https://rpx-100.net">www.rpx-100.net</a><br>
@@ -17,23 +17,16 @@
 </table>
 
 <h1>Overview</h1>
-The development and operation of a new digital radio communication system (Super Wi-Fi) is new initiative of Radio Amateurs in Austria establishing a new digital transmission procedure allowing high speed data communication in Sub-GHz Frequency bands.<br><br>
-Requirements for the new communication system are to use a wideband transmission mode to support more bandwidth for each user, and enables multiple users at the same time to connect to a base station.
-The implementation of a new digital communication system will be based on the concept of a software defined radio using the LimeSDR ecosystem. This will address and motivate a larger community of developers and radio amateurs to get involved in the enhancement of the system. 
-Hardware and software design of a base station and CPE-like user device shall allow a modular use with different radio front-ends supporting all possible Sub-GHz frequency bands.<br><br>
-The Austrian Radio Amateur Association (OeVSV) together with the Institute of Telecommunication of the Vienna University of Technology will request a permit to test operation of such a new digital communication system in VHF and UHF frequency bands. A possible cooperation with The German Radio Amateur Association shall be explored for utilizing the new transmission protocol in German UHF bands.  
-
+WRAN (Wireless Regional Area Network) is a new digital radio transmission mode (Super Wi-Fi) developed by Radio Amateurs in Austria allowing high speed data communication in Sub-GHz Frequency bands.<br><br>
+Requirements for the new communication system are to support sufficient bandwidth for each user, and enables multiple users at the same time to connect to a base station.
+The implementation of the new digital transmission mode is based on the concept of a software defined radio using the LimeSDR ecosystem. The Open SDR Platform addresses developers building software for radio communication and integrates artificial intelligence (AI) into radio transmission and propagation.<br><br>
+Hardware and software are designed as kit, the RPX-100, which allows a modular use and supports all possible Sub-GHz frequency bands.<br>
 <p align="center"><img src="doc/img/BlockDiagram.png" height="400" alt="Concept Modem"></p>
+<h1>RPX-100 Transceiver Kit</h1>
+The RPX-100 is a modular kit for a software defined transceiver using standard embedded boards running linux such as the Odroid C4 or the Jetson Nano.
+Most common Software Defined Radios with USB interface are supported, the kit comes with the LimeSDR mini 2.0. It includes a Radio Frontend with software defined band pass filters and a class A amplifier with output power of 25W and is designed to operate on all Sub GHz Frequencies.<br><br>
 
-<h1>Goals</h1>
-<ul>
-<li>Evaluate and select appropriate wireless communication protocol similar to existing Wireless LAN protocols but suitable for the VHF and UHF bands.</li>
-<li>Define a new transmission protocol for wideband data communication for efficient use of the a 2Mhz spectrum in the VHF band and suitable to operate an emergency data communication network connecting end-user devices to base stations.</li>
-<li>Software development and implementation of the transmission protocol on a prototype SRD hardware for a base station and end users devices using the GNU Radio ecosystem.</li>
-<li>Test and evaluation the new transmission protocol in lab- and field environments on selected Radio Amateur Relay locations in Austria.</li>
-<li>Benchmark how reliability and scalability such a new transmission protocol can be operated in the VHF and UHF band.</li>
-<li>Provide a blueprint for industrial development and production of base stations and end-user devices for the new transmission protocol.</li>
-</ul>
+The RPX-100 can be supplied with 9-24V to allow any mobile or fixed power supply. Interfaces such as GPIO, display boards, etc. are available for optional add-ons such as display, Microphone or buttons and keyboard. Alternatively a Raspberry Compute Module 4 or the Odroid C4 can be used as embedded CPU.
 
 The source code for this project can be found in the following repositories on GitHub:
 
@@ -43,8 +36,17 @@ The source code for this project can be found in the following repositories on G
 <li>WebSDR for RPX-100: <a href="https://github.com/WRAN-OEVSV/WebSDR" target="_blank">https://github.com/WRAN-OEVSV/WebSDR --> Integration into base ongoing</a></li>
 </ul>
 
-The following dependencies need to be installed before building:
+Before compiling the code on the embedded device the following dependencies need to be installed manually:
 
-sudo apt install libssl-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
+<ul>
+<li>automake</li>
+<li>autoconf</li>
+<li>build-essentials</li>
+<li>cmake (latest versions or > 3.x</li>
+<li>gdb</li>
+<li>rsync</li>
+<li>libssl</li>
+</ul>
 
-If not Ubuntu soapysdr needs to be installed from source before installing above dependencies.
+Cloning for embedded devices has to be done recursive: `git clone --recursive git@github.com:isemann/RPX-100.git`
+In the directory of the cloned source code do: `mkdir build && cd build && cmake .. && make`

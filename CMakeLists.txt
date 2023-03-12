@@ -1,34 +1,36 @@
 ########################################################################
-## Create WRAN project
+## Create RPX-100 project (Implementation of WRAN IEE802.22)
 ########################################################################
 cmake_minimum_required(VERSION 3.18.1)
-project("WRAN" DESCRIPTION "WRAN 802.22 HAMNET" LANGUAGES CXX C)
+project("RPX-100" DESCRIPTION "Open SDR Platform" LANGUAGES CXX C)
 
 
 ########################################################################
 ## compiler flags
 ########################################################################
 
-#C++17 is a required language feature for this project
+## C++17 is a required language feature for this project
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#optimizing must be looked at in more details - especially what is helping on complex math and fft
-add_definitions(-march=native)
-add_definitions(-mfpmath=sse)
+## optimizing only for AMD, must be disabled for ARM (WRAN runs on ARM !)
+# add_definitions(-march=native)
+# add_definitions(-mfpmath=sse)
 
-#set build type to distinguish DEBUG, RELEASE and CPE, BASE
-#set(CMAKE_BUILD_TYPE Debug)
+## Set CMAKE Policy
+cmake_policy(SET CMP0135 NEW)
+
+## set build type to distinguish DEBUG, RELEASE and CPE, BASE
 ## IMPORTANT this must stay on Release for the moment as it affects the external libraries especially limesuite
 ## which has zero performance if it is running in DEBUG mode
-set(CMAKE_BUILD_TYPE Release)  
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE CPE)
 #set(CMAKE_BUILD_TYPE BASE)
 
-## a dedicated BUILD_TYPE must be used for the WRAN project
 
-# CPM cmake dependency manager
+## CPM cmake dependency manager
 set(CPM_DOWNLOAD_VERSION 0.34.0)
 if(CPM_SOURCE_CACHE)
     set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
@@ -47,7 +49,7 @@ endif()
 include(${CPM_DOWNLOAD_LOCATION})
 
 
-set(WRAN_SOURCES
+set(RPX-100_SOURCES
         "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp"
@@ -59,7 +61,7 @@ set(WRAN_SOURCES
         "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
         "${PROJECT_SOURCE_DIR}/util/User.cpp")
 
-set(WRAN_INCLUDES
+set(RPX-100_INCLUDES
         "${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/phy"
         "${PROJECT_SOURCE_DIR}/util"
@@ -68,10 +70,10 @@ set(WRAN_INCLUDES
         "${CMAKE_BINARY_DIR}/_deps/liquid-build/include/liquid"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/include/"
         "${CMAKE_BINARY_DIR}/_deps/libwebsockets-build/"
-)
+        )
 
 
-# LimeSuite
+## LimeSuite
 set(ENABLE_EXAMPLES OFF CACHE INTERNAL "")
 set(ENABLE_GUI OFF CACHE INTERNAL "")
 set(ENABLE_OCTAVE OFF CACHE INTERNAL "")
@@ -79,20 +81,20 @@ set(ENABLE_SOAPY_LMS7 OFF CACHE INTERNAL "")
 set(ENABLE_LIMERFE OFF CACHE INTERNAL "")
 add_subdirectory("external/LimeSuite")
 
-# nlohmann json
+## nlohmann json
 set(JSON_Install OFF CACHE INTERNAL "")
 add_subdirectory("external/json")
 
-# cxxopts
+## cxxopts
 option(CXXOPTS_ENABLE_WARNINGS ON)
 add_subdirectory("external/cxxopts")
 
-# Threads
+## Threads
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-# fetch libwebsockets and add library
+## fetch libwebsockets and add library
 
 FetchContent_Declare(libwebsockets URL https://github.com/warmcat/libwebsockets/archive/refs/tags/v4.3.2.tar.gz)
 FetchContent_MakeAvailable(libwebsockets)
@@ -103,7 +105,7 @@ target_include_directories(websockets-fixed
         ${libwebsockets_BINARY_DIR}/include)
 target_link_libraries(websockets-fixed INTERFACE websockets)
 
-# add and compile dependencies: fftw3, liquid-dsp libaries
+## add and compile dependencies: fftw3, liquid-dsp libaries
 CPMAddPackage(
         DOWNLOAD_EXTRACT_TIMESTAMP false
         NAME fftw3
@@ -148,21 +150,21 @@ if (liquid_ADDED)
     target_link_libraries( liquid::liquid INTERFACE "${liquid_LIBRARY}")
 endif()
 
-# compile argon2 by hand
+## add argon2 sources for compiling
 set(ARGON2_SOURCES
-   external/argon2/src/argon2.c
-   external/argon2/src/core.c
-   external/argon2/src/thread.c
-   external/argon2/src/opt.c
-   external/argon2/src/encoding.c
-   external/argon2/src/blake2/blake2b.c
-)
-# end argon2
+        external/argon2/src/argon2.c
+        external/argon2/src/core.c
+        external/argon2/src/thread.c
+        external/argon2/src/ref.c
+        external/argon2/src/encoding.c
+        external/argon2/src/blake2/blake2b.c
+        )
 
-# create radio_test executable; used for testing sdr and phy topics at the moment
-add_executable(radio_test radio_test.cpp ${WRAN_SOURCES} ${ARGON2_SOURCES})
-target_include_directories(radio_test PUBLIC ${WRAN_INCLUDES})
+
+## create RPX-100 executable
+add_executable(radio_test radio_test.cpp ${RPX-100_SOURCES} ${ARGON2_SOURCES})
+target_include_directories(radio_test PUBLIC ${RPX-100_INCLUDES})
 target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
-#target_link_libraries(radio_test LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
+
