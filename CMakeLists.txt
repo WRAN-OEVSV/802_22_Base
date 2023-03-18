@@ -13,6 +13,8 @@ project("RPX-100" DESCRIPTION "Open SDR Platform" LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+## export compiler settings to json for remote development
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## optimizing only for AMD, must be disabled for ARM (WRAN runs on ARM !)
 # add_definitions(-march=native)

@@ -42,7 +42,7 @@ Before compiling the code on the embedded device the following dependencies need
 <li>automake</li>
 <li>autoconf</li>
 <li>build-essentials</li>
-<li>cmake (latest version or > 3.x)</li>
+<li>cmake (latest version or >= 3.25.1)</li>
 <li>libssl-dev</li>
 <li>libsoapysdr-dev</li>
 <li>limesuite</li>
