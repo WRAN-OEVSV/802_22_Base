@@ -1,7 +1,7 @@
 ########################################################################
 ## Create RPX-100 project (Implementation of WRAN IEE802.22)
 ########################################################################
-cmake_minimum_required(VERSION 3.18.1)
+cmake_minimum_required(VERSION 3.25.1)
 project("RPX-100" DESCRIPTION "Open SDR Platform" LANGUAGES CXX C)
 
 
@@ -152,12 +152,12 @@ endif()
 
 ## add argon2 sources for compiling
 set(ARGON2_SOURCES
-        external/argon2/src/argon2.c
-        external/argon2/src/core.c
-        external/argon2/src/thread.c
-        external/argon2/src/ref.c
-        external/argon2/src/encoding.c
-        external/argon2/src/blake2/blake2b.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/argon2.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/core.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/thread.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/ref.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/encoding.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/blake2/blake2b.c
         )
 
 
