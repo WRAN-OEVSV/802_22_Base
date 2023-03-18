@@ -3,6 +3,7 @@
 #include <memory>
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/rotating_file_sink.h"
 
 class Log {
 public:
@@ -12,13 +13,14 @@ public:
     static inline std::shared_ptr<spdlog::logger>& getRadioLogger() { return s_RadioLogger; }
     static inline std::shared_ptr<spdlog::logger>& getPhyLogger() { return s_PhyLogger; }
     static inline std::shared_ptr<spdlog::logger>& getTestLogger() { return s_TestLogger; }
+    static inline std::shared_ptr<spdlog::logger>& getAppLogger() { return s_AppLogger; }
 
 private:
 
     static std::shared_ptr<spdlog::logger> s_RadioLogger;
     static std::shared_ptr<spdlog::logger> s_PhyLogger;
     static std::shared_ptr<spdlog::logger> s_TestLogger;
-
+    static std::shared_ptr<spdlog::logger> s_AppLogger;
 };
 
 #define LOG_RADIO_WARN(...)    Log::getRadioLogger()->warn(__VA_ARGS__)
@@ -38,3 +40,9 @@ private:
 #define LOG_TEST_ERROR(...)     Log::getTestLogger()->error(__VA_ARGS__)
 #define LOG_TEST_TRACE(...)     Log::getTestLogger()->trace(__VA_ARGS__)
 #define LOG_TEST_DEBUG(...)     Log::getTestLogger()->debug(__VA_ARGS__)
+
+#define LOG_APP_WARN(...)      Log::getAppLogger()->warn(__VA_ARGS__)
+#define LOG_APP_INFO(...)      Log::getAppLogger()->info(__VA_ARGS__)
+#define LOG_APP_ERROR(...)     Log::getAppLogger()->error(__VA_ARGS__)
+#define LOG_APP_TRACE(...)     Log::getAppLogger()->trace(__VA_ARGS__)
+#define LOG_APP_DEBUG(...)     Log::getAppLogger()->debug(__VA_ARGS__)
