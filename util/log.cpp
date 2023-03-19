@@ -56,13 +56,13 @@ void Log::Init() {
     auto max_files = 3;
     auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("/var/log/RPX-100.log", max_size, max_files, false);
 
-    s_RadioLogger = std::make_shared<spdlog::logger>(spdlog::logger("RADIO", {file_sink, socket_sink }));
+    s_RadioLogger = std::make_shared<spdlog::logger>(spdlog::logger("RADIO", {console_sink, socket_sink }));
     s_RadioLogger->set_level(spdlog::level::trace);
 
-    s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {file_sink, socket_sink }));;
+    s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {console_sink, socket_sink }));;
     s_PhyLogger->set_level(spdlog::level::trace);
 
-    s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {file_sink, socket_sink }));;
+    s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {console_sink, socket_sink }));;
     s_TestLogger->set_level(spdlog::level::trace);
 
     s_AppLogger = std::make_shared<spdlog::logger>(spdlog::logger("APP", {file_sink, socket_sink }));;
