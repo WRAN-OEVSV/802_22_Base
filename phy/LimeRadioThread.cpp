@@ -415,21 +415,82 @@ int LimeRadioThread::initLimeGPIO()
 }
 
 /*
-Radio Frontend - Define GPIO settings for CM4 hat module
+Radio Frontend - Define GPIO settings for RPX-100 hat module
 uint8_t setRX = 0x00;       // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
 uint8_t setTXDirect = 0x0F; // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
 uint8_t setTX6m = 0x03;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
 uint8_t setTX2m = 0x07;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
 uint8_t setTX70cm = 0x0B;   // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
-
-string modeName[9] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
-uint8_t modeGPIO[9] = {setRX, setTXDirect, setTX6m, setTX2m, setTX70cm};
+string modeName[5] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
+uint8_t modeGPIO[5] = {setRX, setTXDirect, setTX6m, setTX2m, setTX70cm};
 */
+
+/**
+ * @brief Set GPIO to indicate to peripheral unit, that SDR is ON (e.g. LED)
+ * @brief current value of gpio_val || 0x10
+ *
+ */
+void LimeRadioThread::set_HW_SDR_ON() {
+
+    LOG_RADIO_TRACE("set_HW_SDR_ON() called");
+
+    uint8_t gpio_val = 0;
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+    gpio_val = gpio_val || 0x10;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    LOG_RADIO_TRACE("set_HW_SDR_ON() gpio readback {0:x}", gpio_val);
+
+}
+
+/**
+ * @brief Set GPIO to indicate to peripheral unit, that SDR is OFF (e.g. LED)
+ * @brief current value of gpio_val || 0x00
+ *
+ */
+void LimeRadioThread::set_HW_SDR_OFF() {
+
+    LOG_RADIO_TRACE("set_HW_SDR_OFF() called");
+
+    uint8_t gpio_val = 0;
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+    gpio_val = gpio_val || 0x00;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    LOG_RADIO_TRACE("set_HW_SDR_OFF() gpio readback {0:x}", gpio_val);
+
+}
 
 /**
  * @brief Set GPIO for RX mode (RF switch, PA off,...)
  * @brief GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
- * 
+ * @brief Set GPIO to indicate to peripheral unit, that RX mode is set (e.g. LED)
+ * @brief current value of gpio_val || 0x20
+ *
  */
 void LimeRadioThread::set_HW_RX() {
 
@@ -437,12 +498,13 @@ void LimeRadioThread::set_HW_RX() {
 
     // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
     // Set GPIOs to RX mode
-    if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[0], 1) != 0)
+    //
+    uint8_t gpio_val = m_modeGPIO[0] || 0x20;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
     {
         error();
     }
 
-    uint8_t gpio_val = 0;
     // Read and log GPIO values
     if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
     {
@@ -455,7 +517,7 @@ void LimeRadioThread::set_HW_RX() {
 
 /**
  * @brief set TX mode based on RadioThread::TxMode::<mode>
- * 
+ *
  * @param m TxMode enum
  */
 void LimeRadioThread::set_HW_TX(TxMode m) {
@@ -465,59 +527,59 @@ void LimeRadioThread::set_HW_TX(TxMode m) {
     // TX_2M,
     // TX_70cm
 
-
+    uint8_t gpio_val = m_modeGPIO[m] || 0x40;
     // Set GPIOs to TX mode
     switch (m)
     {
-    case 1: // DIRECT
+        case 1: // DIRECT
 
-        LOG_RADIO_TRACE("set_HW_TX() TX_DIRECT");
-        
-        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter    
-        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
-        {
-            error();
-        }
+            LOG_RADIO_TRACE("set_HW_TX() TX_DIRECT");
 
-        break;
+            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
 
-    case 2: // TX_6M
-        LOG_RADIO_TRACE("set_HW_TX() TX_6M");
-        
-        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
-        {
-            error();
-        }
+            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+            {
+                error();
+            }
 
-        break;
-    case 3: // TX_2M
-        LOG_RADIO_TRACE("set_HW_TX() TX_2M");
-        
-        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
-        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
-        {
-            error();
-        }
+            break;
 
-        break;
-    case 4: // TX_70cm
-        LOG_RADIO_TRACE("set_HW_TX() TX_70cm");
-        
-        // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
-        if (LMS_GPIOWrite(m_lms_device, &m_modeGPIO[m], 1) != 0)
-        {
-            error();
-        }
+        case 2: // TX_6M
+            LOG_RADIO_TRACE("set_HW_TX() TX_6M");
 
-        break;
+            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
+            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+            {
+                error();
+            }
 
-    default:
-        LOG_RADIO_ERROR("set_HW_TX() unkown TX Mode");
-        break;
+            break;
+        case 3: // TX_2M
+            LOG_RADIO_TRACE("set_HW_TX() TX_2M");
+
+            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
+            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+            {
+                error();
+            }
+
+            break;
+        case 4: // TX_70cm
+            LOG_RADIO_TRACE("set_HW_TX() TX_70cm");
+
+            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
+            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+            {
+                error();
+            }
+
+            break;
+
+        default:
+            LOG_RADIO_ERROR("set_HW_TX() unkown TX Mode");
+            break;
     }
 
-    uint8_t gpio_val = 0;
     // Read and log GPIO values
     if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
     {

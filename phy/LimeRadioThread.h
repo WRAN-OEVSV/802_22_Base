@@ -36,6 +36,8 @@ public:
     // void getIQData();
     // void setIQData();
 
+    void set_HW_SDR_ON();
+    void set_HW_SDR_OFF();
     void set_HW_RX();
     void set_HW_TX(TxMode m);
 
