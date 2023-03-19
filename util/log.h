@@ -9,6 +9,7 @@ class Log {
 public:
 
     static void Init(int level);
+    static void Init();
 
     static inline std::shared_ptr<spdlog::logger>& getRadioLogger() { return s_RadioLogger; }
     static inline std::shared_ptr<spdlog::logger>& getPhyLogger() { return s_PhyLogger; }
