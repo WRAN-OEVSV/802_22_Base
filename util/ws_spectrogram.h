@@ -14,10 +14,22 @@
 #include "phy/RadioThread.h"
 #include "util/log.h"
 #include "util/WebSocketServer.h"
+#include <nlohmann/json.hpp>
 
 
 #define SOCKET_TIMEOUT 50
 
+class neighborCacheEntry {
+public:
+    unsigned char mac[6];
+    vector<std::array<unsigned char, 4>> ipv4;
+    vector<std::array<unsigned char, 16>> ipv6;
+    std::string comment;
+    std::string callsign;
+
+    friend void to_json(nlohmann::json& j, const neighborCacheEntry& p);
+    friend void from_json(const nlohmann::json& j, neighborCacheEntry& p);
+};
 
 class wsSpectrogram : public WebSocketServer {
 public:
@@ -79,6 +91,7 @@ private:
     double m_span = 2'285'000;
 
     std::stringstream m_msgSOCKET;
+    std::list<neighborCacheEntry> neighbor_cache;
 
 
 };
