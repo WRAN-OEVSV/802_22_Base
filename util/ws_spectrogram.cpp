@@ -197,7 +197,7 @@ void wsSpectrogram::run() {
                 }
                 m_msgSOCKET << "]}";
                 // msgSOCKET.seekp(-1, std::ios_base::end);
-                //broadcast(m_msgSOCKET.str());
+                broadcast(m_msgSOCKET.str());
 
                 spgramcf_destroy(q);
             }
