@@ -14,13 +14,15 @@ public:
     static inline std::shared_ptr<spdlog::logger>& getRadioLogger() { return s_RadioLogger; }
     static inline std::shared_ptr<spdlog::logger>& getPhyLogger() { return s_PhyLogger; }
     static inline std::shared_ptr<spdlog::logger>& getTestLogger() { return s_TestLogger; }
-    static inline std::shared_ptr<spdlog::logger>& getAppLogger() { return s_AppLogger; }
+    static inline std::shared_ptr<spdlog::logger>& getWebLogger() { return s_WebLogger; }
+    static inline std::shared_ptr<spdlog::logger>& getAppLogger() {return s_AppLogger; }
 
 private:
 
     static std::shared_ptr<spdlog::logger> s_RadioLogger;
     static std::shared_ptr<spdlog::logger> s_PhyLogger;
     static std::shared_ptr<spdlog::logger> s_TestLogger;
+    static std::shared_ptr<spdlog::logger> s_WebLogger;
     static std::shared_ptr<spdlog::logger> s_AppLogger;
 };
 
@@ -41,6 +43,12 @@ private:
 #define LOG_TEST_ERROR(...)     Log::getTestLogger()->error(__VA_ARGS__)
 #define LOG_TEST_TRACE(...)     Log::getTestLogger()->trace(__VA_ARGS__)
 #define LOG_TEST_DEBUG(...)     Log::getTestLogger()->debug(__VA_ARGS__)
+
+#define LOG_WEB_WARN(...)      Log::getWebLogger()->warn(__VA_ARGS__)
+#define LOG_WEB_INFO(...)      Log::getWebLogger()->info(__VA_ARGS__)
+#define LOG_WEB_ERROR(...)     Log::getWebLogger()->error(__VA_ARGS__)
+#define LOG_WEB_TRACE(...)     Log::getWebLogger()->trace(__VA_ARGS__)
+#define LOG_WEB_DEBUG(...)     Log::getWebLogger()->debug(__VA_ARGS__)
 
 #define LOG_APP_WARN(...)      Log::getAppLogger()->warn(__VA_ARGS__)
 #define LOG_APP_INFO(...)      Log::getAppLogger()->info(__VA_ARGS__)

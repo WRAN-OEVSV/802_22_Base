@@ -7,6 +7,7 @@
 std::shared_ptr<spdlog::logger> Log::s_RadioLogger;
 std::shared_ptr<spdlog::logger> Log::s_PhyLogger;
 std::shared_ptr<spdlog::logger> Log::s_TestLogger;
+std::shared_ptr<spdlog::logger> Log::s_WebLogger;
 std::shared_ptr<spdlog::logger> Log::s_AppLogger;
 
 /**
@@ -56,17 +57,19 @@ void Log::Init()
     auto socket_sink = std::make_shared<WebSocketSink_mt>();
     auto max_size = 1048576 * 5;
     auto max_files = 3;
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("/var/log/RPX-100.log", max_size, max_files, false);
 
     s_RadioLogger = std::make_shared<spdlog::logger>(spdlog::logger("RADIO", {console_sink, socket_sink}));
     s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {console_sink, socket_sink}));
     s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {console_sink, socket_sink}));
-    s_AppLogger = std::make_shared<spdlog::logger>(spdlog::logger("APP", {file_sink, socket_sink}));
+    s_WebLogger = std::make_shared<spdlog::logger>(spdlog::logger("WEB", {socket_sink}));
+    s_AppLogger = spdlog::rotating_logger_mt("APP", "/var/log/RPX-100.log", max_size, max_files);
 
     s_RadioLogger->set_level(spdlog::level::trace);
     s_PhyLogger->set_level(spdlog::level::trace);
     s_TestLogger->set_level(spdlog::level::trace);
+    s_WebLogger->set_level(spdlog::level::trace);
     s_AppLogger->set_level(spdlog::level::trace);
+    spdlog::set_level(spdlog::level::trace);
 }
 
 void Log::Init(int level)
@@ -77,77 +80,85 @@ void Log::Init(int level)
     auto socket_sink = std::make_shared<WebSocketSink_mt>();
     auto max_size = 1048576 * 5;
     auto max_files = 3;
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("/var/log/RPX-100.log", max_size, max_files, false);
 
     s_RadioLogger = std::make_shared<spdlog::logger>(spdlog::logger("RADIO", {console_sink, socket_sink}));
     s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {console_sink, socket_sink}));
     s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {console_sink, socket_sink}));
-    s_AppLogger = std::make_shared<spdlog::logger>(spdlog::logger("APP", {file_sink, socket_sink}));
+    s_WebLogger = std::make_shared<spdlog::logger>(spdlog::logger("WEB", {socket_sink}));
+    s_AppLogger = spdlog::rotating_logger_mt("APP", "/var/log/RPX-100.log", max_size, max_files);
 
     switch (level)
     {
         case 0:
-            spdlog::set_level(spdlog::level::trace);
             s_RadioLogger->set_level(spdlog::level::trace);
             s_PhyLogger->set_level(spdlog::level::trace);
             s_TestLogger->set_level(spdlog::level::trace);
+            s_WebLogger->set_level(spdlog::level::trace);
             s_AppLogger->set_level(spdlog::level::trace);
+            spdlog::flush_on(spdlog::level::trace);
             break;
 
         case 1:
-            spdlog::set_level(spdlog::level::debug);
             s_RadioLogger->set_level(spdlog::level::debug);
             s_PhyLogger->set_level(spdlog::level::debug);
             s_TestLogger->set_level(spdlog::level::debug);
+            s_WebLogger->set_level(spdlog::level::debug);
             s_AppLogger->set_level(spdlog::level::debug);
+            spdlog::flush_on(spdlog::level::debug);
             break;
 
         case 2:
-            spdlog::set_level(spdlog::level::info);
             s_RadioLogger->set_level(spdlog::level::info);
             s_PhyLogger->set_level(spdlog::level::info);
             s_TestLogger->set_level(spdlog::level::info);
+            s_WebLogger->set_level(spdlog::level::info);
             s_AppLogger->set_level(spdlog::level::info);
+            spdlog::flush_on(spdlog::level::info);
             break;
 
         case 3:
-            spdlog::set_level(spdlog::level::warn);
             s_RadioLogger->set_level(spdlog::level::warn);
             s_PhyLogger->set_level(spdlog::level::warn);
             s_TestLogger->set_level(spdlog::level::warn);
+            s_WebLogger->set_level(spdlog::level::warn);
             s_AppLogger->set_level(spdlog::level::warn);
+            spdlog::flush_on(spdlog::level::warn);
             break;
 
         case 4:
-            spdlog::set_level(spdlog::level::err);
             s_RadioLogger->set_level(spdlog::level::err);
             s_PhyLogger->set_level(spdlog::level::err);
             s_TestLogger->set_level(spdlog::level::err);
+            s_WebLogger->set_level(spdlog::level::err);
             s_AppLogger->set_level(spdlog::level::err);
+            spdlog::flush_on(spdlog::level::err);
             break;
 
         case 5:
-            spdlog::set_level(spdlog::level::critical);
             s_RadioLogger->set_level(spdlog::level::critical);
             s_PhyLogger->set_level(spdlog::level::critical);
             s_TestLogger->set_level(spdlog::level::critical);
+            s_WebLogger->set_level(spdlog::level::critical);
             s_AppLogger->set_level(spdlog::level::critical);
+            spdlog::flush_on(spdlog::level::critical);
             break;
 
         case 6:
-            spdlog::set_level(spdlog::level::off);
             s_RadioLogger->set_level(spdlog::level::off);
             s_PhyLogger->set_level(spdlog::level::off);
             s_TestLogger->set_level(spdlog::level::off);
+            s_WebLogger->set_level(spdlog::level::off);
             s_AppLogger->set_level(spdlog::level::off);
+            spdlog::flush_on(spdlog::level::off);
             break;
 
         default:
-            spdlog::set_level(spdlog::level::trace);
             s_RadioLogger->set_level(spdlog::level::trace);
             s_PhyLogger->set_level(spdlog::level::trace);
             s_TestLogger->set_level(spdlog::level::trace);
+            s_WebLogger->set_level(spdlog::level::trace);
             s_AppLogger->set_level(spdlog::level::trace);
+            spdlog::flush_on(spdlog::level::trace);
             break;
     }
 }
