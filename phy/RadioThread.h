@@ -21,7 +21,7 @@
 #include "util/log.h"
 
 
-// for some stuff around the iq queue handling ideas from CubicSDR were taken  
+// for some stuff around the iq queue handling ideas from CubicSDR were taken
 // CubuicSDR (c) Charles J. Cliffe
 
 class SpinMutex {
@@ -70,7 +70,7 @@ public:
 
     RadioThreadIQData() :
             frequency(DEFAULT_CENTER_FREQ), sampleRate(DEFAULT_SAMPLE_RATE), timestampFirstSample(0) {
-    
+
 //        LOG_RADIO_DEBUG("RadioThreadIQData() constructor");
 
     }
@@ -99,7 +99,7 @@ public:
     typedef typename std::deque<RadioThreadIQDataPtr>::value_type value_type;
     typedef typename std::deque<RadioThreadIQDataPtr>::size_type size_type;
 
-    RadioThreadIQDataQueue() { 
+    RadioThreadIQDataQueue() {
         // constructor
         LOG_RADIO_DEBUG("RadioThreadIQDataQueue() constructor");
 
@@ -156,7 +156,7 @@ public:
     }
 
 
-    ~RadioThreadIQDataQueue() { 
+    ~RadioThreadIQDataQueue() {
         LOG_RADIO_DEBUG("RadioThreadIQDataQueue() de-constructor");
     }
 
@@ -192,7 +192,7 @@ public:
 
 
 
-    //Returns true if the thread is indeed terminated, i.e the run() method has returned. 
+    //Returns true if the thread is indeed terminated, i.e the run() method has returned.
     bool isTerminated(int waitMs = 0);
 
     void setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue);
@@ -205,9 +205,9 @@ public:
 
     /**
      * @brief checks if LMSReceive is running in run()
-     * 
-     * @return true 
-     * @return false 
+     *
+     * @return true
+     * @return false
      */
     bool isRxTxRunning() {
         return m_isRxTxRunning.load();
@@ -233,7 +233,7 @@ public:
 
     /**
      * @brief Set the Sampling_Rate and Oversampling
-     * 
+     *
      * @param sampling_rate (in Hz)
      * @param oversampling (0,2,4,8)
      */
@@ -254,27 +254,32 @@ public:
 
     /**
      * @brief set HW GPIO for RX
-     * 
+     *
      */
     virtual void set_HW_RX();
 
     /**
-     * @brief set HW GPIO for TX - used m_TxMode set via set_HW_TX_mode
-     * 
-     */
-    virtual void set_HW_TX() { set_HW_TX(m_TxMode); };
-
-    /**
      * @brief set HW GPIO for TX
-     * 
+     *
      * @param m mode based on RadioThread::TxMode enum
      */
-    virtual void set_HW_TX(TxMode m);
+    virtual void set_HW_TX(uint8_t m);
 
-    virtual void set_HW_TX_mode(TxMode m) { m_TxMode = m; };
+    /**
+    * @brief set HW GPIO for LED SDR_ON
+    *
+    */
+    virtual void set_HW_SDR_ON();
+
+    /**
+    * @brief set HW GPIO for LED SDR_OFF
+    *
+    */
+    virtual void set_HW_SDR_OFF();
 
 
-    
+
+
 protected:
     ThreadIQDataQueueBasePtr m_tx_queue;
     ThreadIQDataQueueBasePtr m_rx_queue;
@@ -287,7 +292,7 @@ protected:
 
     /**
      * @brief m_isRX is true when the RadioThread is in RX mode; if false the thread is running in TX
-     * 
+     *
      */
     std::atomic_bool m_isRX;
 
@@ -300,7 +305,7 @@ private:
     TxMode  m_TxMode = TxMode::TX_DIRECT;
 
 
-    
+
 
 };
 

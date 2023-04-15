@@ -3,111 +3,122 @@
 #include <chrono>
 #include <complex>
 
-
-// for some stuff around the iq queue handling ideas from CubicSDR were taken 
+// for some stuff around the iq queue handling ideas from CubicSDR were taken
 // CubuicSDR (c) Charles J. Cliffe
 
 #define SPIN_WAIT_SLEEP_MS 5
 
-RadioThread::RadioThread() : m_sampleBufferCnt{DEFAULT_SAMPLEBUFFERCNT} {
+RadioThread::RadioThread() : m_sampleBufferCnt{DEFAULT_SAMPLEBUFFERCNT}
+{
     LOG_RADIO_DEBUG("RadioThread() constructor");
     terminated.store(false);
     stopping.store(false);
     m_isRxTxRunning.store(false);
-    m_isRX.store(true);                     // default is to run in RX mode
+    m_isRX.store(true); // default is to run in RX mode
 }
 
-
-RadioThread::RadioThread(int sampleBufferCnt) : m_sampleBufferCnt{sampleBufferCnt} {
+RadioThread::RadioThread(int sampleBufferCnt) : m_sampleBufferCnt{sampleBufferCnt}
+{
     LOG_RADIO_DEBUG("RadioThread() constructor");
     terminated.store(false);
     stopping.store(false);
     m_isRxTxRunning.store(false);
-    m_isRX.store(true);                     // default is to run in RX mode
+    m_isRX.store(true); // default is to run in RX mode
 }
 
-
-
-RadioThread::~RadioThread() {
+RadioThread::~RadioThread()
+{
     LOG_RADIO_DEBUG("RadioThread() de-constructor");
     terminated.store(true);
     stopping.store(true);
 }
 
-void RadioThread::threadMain() {
+void RadioThread::threadMain()
+{
     terminated.store(false);
     stopping.store(false);
-    try {
+    try
+    {
         run();
     }
-    catch (...) {
+    catch (...)
+    {
         terminated.store(true);
         stopping.store(true);
         throw;
     }
-  
+
     terminated.store(true);
     stopping.store(true);
 }
 
-void RadioThread::setup() {
+void RadioThread::setup()
+{
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
-void RadioThread::run() {
+void RadioThread::run()
+{
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
-
-void RadioThread::terminate() {
+void RadioThread::terminate()
+{
     stopping.store(true);
 }
 
-void RadioThread::stop() {
+void RadioThread::stop()
+{
     stopping.store(true);
 }
 
+bool RadioThread::isTerminated(int waitMs)
+{
 
-bool RadioThread::isTerminated(int waitMs) {
-
-    if (terminated.load()) {
+    if (terminated.load())
+    {
         return true;
     }
-    else if (waitMs == 0) {
+    else if (waitMs == 0)
+    {
         return false;
     }
 
-    //this is a stupid busy plus sleep loop
+    // Option to set timer for terminating thread
     int nbCyclesToWait;
 
-    if (waitMs < 0) {
+    if (waitMs < 0)
+    {
         nbCyclesToWait = std::numeric_limits<int>::max();
     }
-    else {
+    else
+    {
         nbCyclesToWait = (waitMs / SPIN_WAIT_SLEEP_MS) + 1;
     }
 
-    for ( int i = 0; i < nbCyclesToWait; i++) {
+    for (int i = 0; i < nbCyclesToWait; i++)
+    {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(SPIN_WAIT_SLEEP_MS));
 
-        if (terminated.load()) {
+        if (terminated.load())
+        {
             return true;
         }
     }
 
-    LOG_RADIO_ERROR("ERROR: thread {} has not terminated in time ! (> {}  ms)<< ", typeid(*this).name() , waitMs );
+    LOG_RADIO_ERROR("ERROR: thread {} has not terminated in time ! (> {}  ms)<< ", typeid(*this).name(), waitMs);
 
     return terminated.load();
 }
 
-
-void RadioThread::setFrequency(float_t frequency) {
+void RadioThread::setFrequency(float_t frequency)
+{
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
-
-void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling) {
+void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
+{
     // defined in radio specific class (e.g. LimeRadioThread)
 }
 
@@ -121,35 +132,46 @@ void RadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling) {
 //     // defined in radio specific class (e.g. LimeRadioThread)
 // }
 
-void RadioThread::set_HW_RX() {
+void RadioThread::set_HW_RX(){
     // defined in radio specific class (e.g. LimeRadioThread)
 };
 
-void RadioThread::set_HW_TX(TxMode m) {
+void RadioThread::set_HW_TX(uint8_t m){
     // defined in radio specific class (e.g. LimeRadioThread)
 };
 
+void RadioThread::set_HW_SDR_ON(){
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
 
-void RadioThread::setRXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
-    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+void RadioThread::set_HW_SDR_OFF(){
+    // defined in radio specific class (e.g. LimeRadioThread)
+};
+
+void RadioThread::setRXQueue(const ThreadIQDataQueueBasePtr &threadQueue)
+{
+    std::lock_guard<std::mutex> lock(m_queue_bindings_mutex);
     LOG_RADIO_DEBUG("setRXQueue()");
     m_rx_queue = threadQueue;
 }
 
-ThreadIQDataQueueBasePtr RadioThread::getRXQueue() {
-    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+ThreadIQDataQueueBasePtr RadioThread::getRXQueue()
+{
+    std::lock_guard<std::mutex> lock(m_queue_bindings_mutex);
     LOG_RADIO_DEBUG("getRXQueue() ");
     return m_rx_queue;
 }
 
-void RadioThread::setTXQueue(const ThreadIQDataQueueBasePtr& threadQueue) {
-    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+void RadioThread::setTXQueue(const ThreadIQDataQueueBasePtr &threadQueue)
+{
+    std::lock_guard<std::mutex> lock(m_queue_bindings_mutex);
     LOG_RADIO_DEBUG("setTXQueue()");
     m_tx_queue = threadQueue;
 }
 
-ThreadIQDataQueueBasePtr RadioThread::getTXQueue() {
-    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+ThreadIQDataQueueBasePtr RadioThread::getTXQueue()
+{
+    std::lock_guard<std::mutex> lock(m_queue_bindings_mutex);
     LOG_RADIO_DEBUG("getTXQueue() ");
     return m_tx_queue;
 }

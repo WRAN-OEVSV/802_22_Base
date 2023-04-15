@@ -7,12 +7,12 @@
 #include <chrono>
 #include <complex>
 
-
 //////////////////////////
 /// LimeRadioThread stuff
 
-LimeRadioThread::LimeRadioThread() 
-    : RadioThread(), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}  {
+LimeRadioThread::LimeRadioThread()
+        : RadioThread(), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}
+{
 
     LOG_RADIO_TRACE("LimeRadioThread() constructor");
 
@@ -20,12 +20,14 @@ LimeRadioThread::LimeRadioThread()
 
     initLimeGPIO();
     set_HW_RX();
+    set_HW_SDR_ON();
 
     initStreaming();
 }
 
-LimeRadioThread::LimeRadioThread(int sampleBufferCnt) 
-    : RadioThread(sampleBufferCnt), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}  {
+LimeRadioThread::LimeRadioThread(int sampleBufferCnt)
+        : RadioThread(sampleBufferCnt), m_rxSampleCnt{RadioThread::m_sampleBufferCnt}, m_txSampleCnt{RadioThread::m_sampleBufferCnt}
+{
 
     LOG_RADIO_TRACE("LimeRadioThread(int) constructor");
 
@@ -33,11 +35,13 @@ LimeRadioThread::LimeRadioThread(int sampleBufferCnt)
 
     initLimeGPIO();
     set_HW_RX();
+    set_HW_SDR_ON();
 
     initStreaming();
 }
 
-LimeRadioThread::~LimeRadioThread() {
+LimeRadioThread::~LimeRadioThread()
+{
 
     LOG_RADIO_TRACE("LimeRadioThread destructor");
 
@@ -45,22 +49,21 @@ LimeRadioThread::~LimeRadioThread() {
     closeLimeSDR();
 }
 
-
-
 /**
  * @brief run() is receiving and sending the data via the Lime - a quick hack for the start
- * 
+ *
  * @todo move RX/TX stuff to own function ; thread either runs as RX or TX
- * 
+ *
  */
-void LimeRadioThread::run() {
+void LimeRadioThread::run()
+{
 
-    LOG_RADIO_INFO("SDR thread starting.");
+    LOG_RADIO_TRACE("SDR thread starting.");
 
     m_isRxTxRunning.store(true);
 
-    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
-    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getTXQueue());
+    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>(RadioThread::getRXQueue());
+    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>(RadioThread::getTXQueue());
 
     LOG_RADIO_DEBUG("run() rx stream handle {}", m_rx_streamId.handle);
     LOG_RADIO_DEBUG("run() m_rxIQbuffer {}", m_rxIQbuffer);
@@ -73,28 +76,30 @@ void LimeRadioThread::run() {
 
     double samplesTotalRX = 0;
     double samplesTotalTX = 0;
- 
-    // run until thread gets terminated, or stopped (stopping -> true)
-    while(!stopping)
-    {
-        if(m_isRX) {
 
-            //Receive samples
+    // run until thread gets terminated, or stopped (stopping -> true)
+    while (!stopping)
+    {
+        if (m_isRX)
+        {
+
+            // Receive samples
             int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
 
-            //I and Q samples are interleaved in buffer: IQIQIQ...
+            // I and Q samples are interleaved in buffer: IQIQIQ...
             float *pp = (float *)m_rxIQbuffer;
             liquid_float_complex s;
 
-            // @tcheck  suboptimal ??  
+            // @tcheck  suboptimal ??
             m_rxIQdataOut = std::make_shared<RadioThreadIQData>();
 
             m_rxIQdataOut->timestampFirstSample = m_rx_metadata.timestamp;
 
-            if(samplesRead > 0)
+            if (samplesRead > 0)
             {
 
-                for (int i = 0; i < samplesRead; i++) {
+                for (int i = 0; i < samplesRead; i++)
+                {
                     s.real(pp[2 * i]);
                     s.imag(pp[2 * i + 1]);
 
@@ -103,32 +108,36 @@ void LimeRadioThread::run() {
             }
 
             // add new sample buffer block in queue
-            if(!m_IQdataRXQueue->push(m_rxIQdataOut)) {
-                LOG_RADIO_ERROR("run() queue is full - somebody to take the data - quick!!");
+            if (!m_IQdataRXQueue->push(m_rxIQdataOut))
+            {
+                LOG_RADIO_ERROR("IQ buffer could not be pushed to Queue");
             }
 
             samplesTotalRX += samplesRead;
-
-        } else {
+        }
+        else
+        {
 
             // Transmit Samples
 
-            // @tcheck  suboptimal ??  
+            // @tcheck  suboptimal ??
             m_txIQdataOut = std::make_shared<RadioThreadIQData>();
 
             // get queue item
-            if(m_IQdataTXQueue->pop(m_txIQdataOut)) {
+            if (m_IQdataTXQueue->pop(m_txIQdataOut))
+            {
 
                 auto samplesWrite = m_txIQdataOut->data.size();
 
-                //I and Q samples are interleaved in buffer: IQIQIQ...
+                // I and Q samples are interleaved in buffer: IQIQIQ...
                 float *pp = (float *)m_txIQbuffer;
                 liquid_float_complex s;
 
-                if(samplesWrite > 0)
+                if (samplesWrite > 0)
                 {
 
-                    for (int i = 0; i < samplesWrite; i++) {
+                    for (int i = 0; i < samplesWrite; i++)
+                    {
 
                         s = m_rxIQdataOut->data.front();
                         pp[2 * i] = s.real();
@@ -137,7 +146,7 @@ void LimeRadioThread::run() {
                         m_rxIQdataOut->data.pop_front();
                     }
 
-                    //Send samples with delay from RX (waitForTimestamp is enabled)
+                    // Send samples with delay from RX (waitForTimestamp is enabled)
                     m_tx_metadata.timestamp = m_txIQdataOut->timestampFirstSample;
                     LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, &m_tx_metadata, 500);
 
@@ -150,24 +159,31 @@ void LimeRadioThread::run() {
     m_isRxTxRunning.store(false);
     LOG_RADIO_DEBUG("Total Samples RX {}", samplesTotalRX);
     LOG_RADIO_DEBUG("Total Samples TX {}", samplesTotalTX);
-    LOG_RADIO_INFO("SDR thread done.");
-
+    LOG_RADIO_TRACE("SDR thread done.");
 }
 
-void LimeRadioThread::terminate() {
+void LimeRadioThread::terminate()
+{
     RadioThread::terminate();
 
-    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getRXQueue());
+    m_IQdataRXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>(RadioThread::getRXQueue());
 
-    if (m_IQdataRXQueue != nullptr) {
+    if (m_IQdataRXQueue != nullptr)
+    {
         m_IQdataRXQueue->flush();
     }
 
-    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>( RadioThread::getTXQueue());
+    m_IQdataTXQueue = std::static_pointer_cast<RadioThreadIQDataQueue>(RadioThread::getTXQueue());
 
-    if (m_IQdataTXQueue != nullptr) {
+    if (m_IQdataTXQueue != nullptr)
+    {
         m_IQdataTXQueue->flush();
     }
+
+    // GPIO STREAM LED off
+    // GPIO SDR LED off
+    set_HW_STREAM_LED_OFF();
+    set_HW_SDR_OFF();
 }
 
 int LimeRadioThread::error()
@@ -178,163 +194,167 @@ int LimeRadioThread::error()
     exit(-1);
 }
 
-
-
 /**
  * @brief initalize the LimeSDR to default values
- * 
+ *
  * @todo currently only RX expand to TX, and add better error handling if no devices are found
- * 
- * @return int 
+ *
+ * @return int
  */
-int LimeRadioThread::initLimeSDR() {
+int LimeRadioThread::initLimeSDR()
+{
     // init LimeSDR
-    LOG_RADIO_INFO("Init limesdr");
+    LOG_RADIO_TRACE("Init limesdr");
 
-    //Find devices
+    // Find devices
     int n;
-    lms_info_str_t list[8]; //should be large enough to hold all detected devices
-    if ((n = LMS_GetDeviceList(list)) < 0) //NULL can be passed to only get number of devices
+    lms_info_str_t list[8];                // should be large enough to hold all detected devices
+    if ((n = LMS_GetDeviceList(list)) < 0) // NULL can be passed to only get number of devices
         error();
 
-    LOG_RADIO_TRACE("Devices found: {}", n); //print number of devices
+    LOG_RADIO_TRACE("Devices found: {}", n); // print number of devices
     if (n < 1)
         return -1;
 
-    //open the first device
+    // open the first device
     if (LMS_Open(&m_lms_device, list[0], nullptr))
         error();
 
-    //Initialize device with default configuration
-    //Do not use if you want to keep existing configuration
-    //Use LMS_LoadConfig(device, "/path/to/file.ini") to load config from INI
+    // Initialize device with default configuration
+    // Do not use if you want to keep existing configuration
+    // Use LMS_LoadConfig(device, "/path/to/file.ini") to load config from INI
     if (LMS_Init(m_lms_device) != 0)
         error();
 
-
-    //Enable RX channel
-    //Channels are numbered starting at 0
+    // Enable RX channel
+    // Channels are numbered starting at 0
     if (LMS_EnableChannel(m_lms_device, LMS_CH_RX, LMS_Channel, true) != 0)
         error();
 
-    //Set RX center frequency 
+    // Set RX center frequency
     if (LMS_SetLOFrequency(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_CENTER_FREQ) != 0)
         error();
 
-    //Enable TX channel
-    //Channels are numbered starting at 0
+    // Enable TX channel
+    // Channels are numbered starting at 0
     if (LMS_EnableChannel(m_lms_device, LMS_CH_TX, LMS_Channel, true) != 0)
         error();
 
-    //Set TX center frequency 
+    // Set TX center frequency
     if (LMS_SetLOFrequency(m_lms_device, LMS_CH_TX, LMS_Channel, DEFAULT_CENTER_FREQ) != 0)
         error();
 
-
-    //This set sampling rate for all channels
+    // This set sampling rate for all channels
     if (LMS_SetSampleRate(m_lms_device, DEFAULT_SAMPLE_RATE, DEFAULT_OVERSAMPLING) != 0)
         error();
+
+    LOG_APP_INFO("Started LimeSDR with SampleRate: {}, OverSampling: {}, CenterFreq: {}", DEFAULT_SAMPLE_RATE, DEFAULT_OVERSAMPLING, DEFAULT_CENTER_FREQ);
 
     return 0;
 }
 
+void LimeRadioThread::closeLimeSDR()
+{
 
-void LimeRadioThread::closeLimeSDR() {
+    LOG_RADIO_TRACE("close lime sdr");
 
-    LOG_RADIO_INFO("close lime sdr");
-
-    //Close device
+    // Close device
     LMS_Close(m_lms_device);
 }
 
+void LimeRadioThread::initStreaming()
+{
 
-void LimeRadioThread::initStreaming() {
+    // RX Streaming Setup
+    LOG_RADIO_TRACE("Init RX Streaming");
 
-    //RX Streaming Setup
-    LOG_RADIO_INFO("Init RX Streaming");
-
-    //Initialize stream
-    m_rx_streamId.channel = LMS_Channel;                 //channel number
-    m_rx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_rx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
-    m_rx_streamId.isTx = false;                          //RX channel
-    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
+    // Initialize stream
+    m_rx_streamId.channel = LMS_Channel;               // channel number
+    m_rx_streamId.fifoSize = 1024 * 1024;              // fifo size in samples
+    m_rx_streamId.throughputVsLatency = 0.5;           // optimize for max throughput
+    m_rx_streamId.isTx = false;                        // RX channel
+    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32; // F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_rx_streamId) != 0)
         error();
 
-    //allocate memory for IQ Buffer used by LMS_Receive
-    if (m_rxIQbuffer != nullptr) {
-            ::free(m_rxIQbuffer);
+    // allocate memory for IQ Buffer used by LMS_Receive
+    if (m_rxIQbuffer != nullptr)
+    {
+        ::free(m_rxIQbuffer);
     }
     m_rxIQbuffer = std::malloc(m_rxSampleCnt * 4 * sizeof(float));
 
-    LOG_RADIO_TRACE("initStreaming() rxSampleCnt {}", m_rxSampleCnt);    
-    LOG_RADIO_TRACE("initStreaming() m_rxIQbuffer {}",m_rxIQbuffer);
+    LOG_RADIO_TRACE("initStreaming() rxSampleCnt {}", m_rxSampleCnt);
+    LOG_RADIO_TRACE("initStreaming() m_rxIQbuffer {}", m_rxIQbuffer);
     LOG_RADIO_TRACE("initStreaming() size m_rxIQbuffer {}", m_rxSampleCnt * 4 * sizeof(int16_t));
 
-    //Start streaming
-    if(LMS_StartStream(&m_rx_streamId) != 0)
+    // Start streaming
+    if (LMS_StartStream(&m_rx_streamId) != 0)
         LOG_RADIO_ERROR("RX StartStream Error");
 
     LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_rx_streamId.handle);
+    LOG_APP_INFO("Started RX Streaming, SampleCount: {}", m_rxSampleCnt);
 
-    //Streaming Metadata
-    m_rx_metadata.flushPartialPacket = false; //currently has no effect in RX
-    m_rx_metadata.waitForTimestamp = false; //currently has no effect in RX
+    // Streaming Metadata
+    m_rx_metadata.flushPartialPacket = false; // currently has no effect in RX
+    m_rx_metadata.waitForTimestamp = false;   // currently has no effect in RX
 
-
-    //TX Streaming Setup
+    // TX Streaming Setup
     LOG_RADIO_INFO("Init TX Streaming");
 
-    //Initialize TX stream
-    m_tx_streamId.channel = LMS_Channel;                 //channel number
-    m_tx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_tx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
-    m_tx_streamId.isTx = true;                          //RX channel
-    m_tx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
+    // Initialize TX stream
+    m_tx_streamId.channel = LMS_Channel;               // channel number
+    m_tx_streamId.fifoSize = 1024 * 1024;              // fifo size in samples
+    m_tx_streamId.throughputVsLatency = 0.5;           // optimize for max throughput
+    m_tx_streamId.isTx = true;                         // RX channel
+    m_tx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32; // F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_tx_streamId) != 0)
         error();
 
-    //allocate memory for IQ Buffer used by LMS_Receive
-    if (m_txIQbuffer != nullptr) {
-            ::free(m_txIQbuffer);
+    // allocate memory for IQ Buffer used by LMS_Receive
+    if (m_txIQbuffer != nullptr)
+    {
+        ::free(m_txIQbuffer);
     }
     m_txIQbuffer = std::malloc(m_txSampleCnt * 4 * sizeof(float));
 
-    
-    LOG_RADIO_TRACE("initStreaming() txSampleCnt {}", m_txSampleCnt);    
-    LOG_RADIO_TRACE("initStreaming() m_txIQbuffer {}",m_txIQbuffer);
+    LOG_RADIO_TRACE("initStreaming() txSampleCnt {}", m_txSampleCnt);
+    LOG_RADIO_TRACE("initStreaming() m_txIQbuffer {}", m_txIQbuffer);
     LOG_RADIO_TRACE("initStreaming() size m_txIQbuffer {}", m_txSampleCnt * 4 * sizeof(int16_t));
 
-    //Start streaming
-    if(LMS_StartStream(&m_tx_streamId) != 0)
+    // Start streaming
+    if (LMS_StartStream(&m_tx_streamId) != 0)
         LOG_RADIO_ERROR("TX StartStream Error");
 
     LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_tx_streamId.handle);
+    LOG_APP_INFO("Started TX Streaming, SampleCount: {}", m_txSampleCnt);
 
-    //Streaming Metadata
-    m_tx_metadata.flushPartialPacket = false; //currently has no effect in RX
-    m_tx_metadata.waitForTimestamp = true; //currently has no effect in RX
+    // Streaming Metadata
+    m_tx_metadata.flushPartialPacket = false; // currently has no effect in RX
+    m_tx_metadata.waitForTimestamp = true;    // currently has no effect in RX
 
-
+    // GPIO STREAM LED on
+    set_HW_STREAM_LED_ON();
 }
 
-void LimeRadioThread::stopStreaming() {
+void LimeRadioThread::stopStreaming()
+{
 
-    //Stop streaming
-    LOG_RADIO_INFO("Stop Streaming");
+    // Stop streaming
+    LOG_RADIO_TRACE("Stop Streaming");
 
     std::free(m_rxIQbuffer);
 
-    LMS_StopStream(&m_rx_streamId); //stream is stopped but can be started again with LMS_StartStream()
-    LMS_DestroyStream(m_lms_device, &m_rx_streamId); //stream is deallocated and can no longer be used
+    LMS_StopStream(&m_rx_streamId);                  // stream is stopped but can be started again with LMS_StartStream()
+    LMS_DestroyStream(m_lms_device, &m_rx_streamId); // stream is deallocated and can no longer be used
 
     std::free(m_txIQbuffer);
 
-    LMS_StopStream(&m_tx_streamId); //stream is stopped but can be started again with LMS_StartStream()
-    LMS_DestroyStream(m_lms_device, &m_tx_streamId); //stream is deallocated and can no longer be used
+    LMS_StopStream(&m_tx_streamId);                  // stream is stopped but can be started again with LMS_StartStream()
+    LMS_DestroyStream(m_lms_device, &m_tx_streamId); // stream is deallocated and can no longer be used
 
-
+    // GPIO STREAM LED off
+    set_HW_STREAM_LED_OFF();
 }
 
 void LimeRadioThread::setFrequency(float_t frequency)
@@ -344,21 +364,20 @@ void LimeRadioThread::setFrequency(float_t frequency)
     LMS_StopStream(&m_rx_streamId);
     LMS_StopStream(&m_tx_streamId);
 
-
-    //Set center frequency to freq
+    // Set center frequency to freq
     if (LMS_SetLOFrequency(m_lms_device, LMS_CH_RX, 0, frequency) != 0)
         error();
 
-    //Set center frequency to freq
+    // Set center frequency to freq
     if (LMS_SetLOFrequency(m_lms_device, LMS_CH_TX, 0, frequency) != 0)
         error();
 
-    if(LMS_StartStream(&m_rx_streamId) != 0)
+    if (LMS_StartStream(&m_rx_streamId) != 0)
         LOG_RADIO_ERROR("RX StartStream Error");
-    if(LMS_StartStream(&m_tx_streamId) != 0)
+    if (LMS_StartStream(&m_tx_streamId) != 0)
         LOG_RADIO_ERROR("TX StartStream Error");
 
-
+    LOG_APP_INFO("Set CenterFreq: {} MHz", frequency);
 }
 
 void LimeRadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling)
@@ -371,28 +390,29 @@ void LimeRadioThread::setSamplingRate(float_t sampling_rate, size_t oversampling
     if (LMS_SetSampleRate(m_lms_device, sampling_rate, oversampling) != 0)
         error();
 
-    if(LMS_StartStream(&m_rx_streamId) != 0)
+    if (LMS_StartStream(&m_rx_streamId) != 0)
         LOG_RADIO_ERROR("RX StartStream Error");
-    if(LMS_StartStream(&m_tx_streamId) != 0)
+    if (LMS_StartStream(&m_tx_streamId) != 0)
         LOG_RADIO_ERROR("TX StartStream Error");
+
+    LOG_APP_INFO("Set SampleRate: {} MHz and OverSampling: {}", sampling_rate, oversampling);
 }
 
 void LimeRadioThread::printRadioConfig()
 {
     float_type rate, rf_rate;
 
-    LMS_GetSampleRate(m_lms_device, LMS_CH_RX, 0, &rate, &rf_rate );
+    LMS_GetSampleRate(m_lms_device, LMS_CH_RX, 0, &rate, &rf_rate);
     LOG_RADIO_DEBUG("current RX host_samp_rate {} rf_samp_rate {}", rate, rf_rate);
 
-    LMS_GetSampleRate(m_lms_device, LMS_CH_TX, 0, &rate, &rf_rate );
+    LMS_GetSampleRate(m_lms_device, LMS_CH_TX, 0, &rate, &rf_rate);
     LOG_RADIO_DEBUG("current TX host_samp_rate {} rf_samp_rate {}", rate, rf_rate);
-
-
 }
 
 int LimeRadioThread::initLimeGPIO()
 {
-    LOG_RADIO_INFO("initLimeGPIO() - setup GPIO pins");
+    LOG_RADIO_TRACE("initLimeGPIO() - setup GPIO pins");
+    LOG_APP_INFO("Setup GPIO pins");
 
     // Set SDR GPIO diretion GPIO0-5 to output and GPIO6-7 to input
     uint8_t gpio_dir = 0xFF;
@@ -408,29 +428,19 @@ int LimeRadioThread::initLimeGPIO()
         error();
     }
 
-
-    LOG_RADIO_DEBUG("initLimeGPIO() direction {0:x}", gpio_val);
+    LOG_RADIO_DEBUG("initLimeGPIO() direction {0:X}", gpio_val);
+    LOG_APP_INFO("GPIO direction {0:X}", gpio_val);
 
     return 0;
 }
 
-/*
-Radio Frontend - Define GPIO settings for RPX-100 hat module
-uint8_t setRX = 0x00;       // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-uint8_t setTXDirect = 0x0F; // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
-uint8_t setTX6m = 0x03;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-uint8_t setTX2m = 0x07;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
-uint8_t setTX70cm = 0x0B;   // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
-string modeName[5] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
-uint8_t modeGPIO[5] = {setRX, setTXDirect, setTX6m, setTX2m, setTX70cm};
-*/
-
 /**
  * @brief Set GPIO to indicate to peripheral unit, that SDR is ON (e.g. LED)
- * @brief current value of gpio_val || 0x10
+ * @brief current value of gpio_val || 0x01
  *
  */
-void LimeRadioThread::set_HW_SDR_ON() {
+void LimeRadioThread::set_HW_SDR_ON()
+{
 
     LOG_RADIO_TRACE("set_HW_SDR_ON() called");
 
@@ -439,7 +449,7 @@ void LimeRadioThread::set_HW_SDR_ON() {
     {
         error();
     }
-    gpio_val = gpio_val || 0x10;
+    gpio_val = gpio_val | m_setGPIOLED1;
     if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
     {
         error();
@@ -451,8 +461,8 @@ void LimeRadioThread::set_HW_SDR_ON() {
         error();
     }
 
-    LOG_RADIO_TRACE("set_HW_SDR_ON() gpio readback {0:x}", gpio_val);
-
+    LOG_RADIO_TRACE("set_HW_SDR_ON() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set SDR_ON LED: {0:X}", gpio_val);
 }
 
 /**
@@ -460,7 +470,8 @@ void LimeRadioThread::set_HW_SDR_ON() {
  * @brief current value of gpio_val || 0x00
  *
  */
-void LimeRadioThread::set_HW_SDR_OFF() {
+void LimeRadioThread::set_HW_SDR_OFF()
+{
 
     LOG_RADIO_TRACE("set_HW_SDR_OFF() called");
 
@@ -469,7 +480,7 @@ void LimeRadioThread::set_HW_SDR_OFF() {
     {
         error();
     }
-    gpio_val = gpio_val || 0x00;
+    gpio_val = gpio_val & ~m_setGPIOLED1;
     if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
     {
         error();
@@ -481,25 +492,36 @@ void LimeRadioThread::set_HW_SDR_OFF() {
         error();
     }
 
-    LOG_RADIO_TRACE("set_HW_SDR_OFF() gpio readback {0:x}", gpio_val);
-
+    LOG_RADIO_TRACE("set_HW_SDR_OFF() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set SDR_OFF LED: {0:X}", gpio_val);
 }
 
 /**
  * @brief Set GPIO for RX mode (RF switch, PA off,...)
- * @brief GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
+ * @brief GPIO0=HIGH - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
  * @brief Set GPIO to indicate to peripheral unit, that RX mode is set (e.g. LED)
  * @brief current value of gpio_val || 0x20
  *
  */
-void LimeRadioThread::set_HW_RX() {
+void LimeRadioThread::set_HW_RX()
+{
 
     LOG_RADIO_TRACE("set_HW_RX() called");
 
     // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
     // Set GPIOs to RX mode
     //
-    uint8_t gpio_val = m_modeGPIO[0] || 0x20;
+    uint8_t gpio_val = 0;
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+    gpio_val = gpio_val & m_setGPIOLED4;  // keep state of STREAM LED
+
+    gpio_val = gpio_val | m_setGPIORX;
+    gpio_val = gpio_val | m_setGPIOLED1;  // SDR LED on
+    gpio_val = gpio_val | m_setGPIOLED3;  // RX LED on
     if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
     {
         error();
@@ -511,8 +533,8 @@ void LimeRadioThread::set_HW_RX() {
         error();
     }
 
-    LOG_RADIO_TRACE("set_HW_RX() gpio readback {0:x}", gpio_val);
-
+    LOG_RADIO_TRACE("set_HW_RX() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set RX_MODE: {0:X}", gpio_val);
 }
 
 /**
@@ -520,64 +542,30 @@ void LimeRadioThread::set_HW_RX() {
  *
  * @param m TxMode enum
  */
-void LimeRadioThread::set_HW_TX(TxMode m) {
+void LimeRadioThread::set_HW_TX(uint8_t m)
+{
 
     // TX_DIRECT=1,
     // TX_6M,
     // TX_2M,
     // TX_70cm
-
-    uint8_t gpio_val = m_modeGPIO[m] || 0x40;
-    // Set GPIOs to TX mode
-    switch (m)
+    uint8_t gpio_val = 0;
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
     {
-        case 1: // DIRECT
+        error();
+    }
+    gpio_val = gpio_val & m_setGPIOLED4;  // keep state of STREAM LED
 
-            LOG_RADIO_TRACE("set_HW_TX() TX_DIRECT");
+    LOG_RADIO_TRACE("set_HW_TX() {}", m_modeName[m]);
+    gpio_val = gpio_val | m_modeGPIO[m];
+    gpio_val = gpio_val | m_setGPIOLED2; // TX LED on
+    gpio_val = gpio_val | m_setGPIOLED1; // SDR ON LED on
 
-            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
 
-            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
-            {
-                error();
-            }
-
-            break;
-
-        case 2: // TX_6M
-            LOG_RADIO_TRACE("set_HW_TX() TX_6M");
-
-            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
-            {
-                error();
-            }
-
-            break;
-        case 3: // TX_2M
-            LOG_RADIO_TRACE("set_HW_TX() TX_2M");
-
-            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
-            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
-            {
-                error();
-            }
-
-            break;
-        case 4: // TX_70cm
-            LOG_RADIO_TRACE("set_HW_TX() TX_70cm");
-
-            // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
-            if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
-            {
-                error();
-            }
-
-            break;
-
-        default:
-            LOG_RADIO_ERROR("set_HW_TX() unkown TX Mode");
-            break;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
     }
 
     // Read and log GPIO values
@@ -586,5 +574,63 @@ void LimeRadioThread::set_HW_TX(TxMode m) {
         error();
     }
 
-    LOG_RADIO_TRACE("set_HW_TX() gpio readback {0:x}", gpio_val);
+    LOG_RADIO_TRACE("set_HW_TX() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set Mode to {}", m_modeName[m]);
+}
+
+/**
+ * @brief Set GPIO to indicate to peripheral unit, that SDR is ON (e.g. LED)
+ * @brief current value of gpio_val || 0x01
+ *
+ */
+void LimeRadioThread::set_HW_STREAM_LED_ON()
+{
+
+    LOG_RADIO_TRACE("set_HW_STREAM_LED_ON() called");
+
+    uint8_t gpio_val = 0;
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+    gpio_val = gpio_val | m_setGPIOLED4;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    LOG_RADIO_TRACE("set_HW_STREAM_LED_ON() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set STREAM LED ON: {0:X}", gpio_val);
+}
+
+void LimeRadioThread::set_HW_STREAM_LED_OFF()
+{
+
+    LOG_RADIO_TRACE("set_HW_STREAM_LED_OFF() called");
+
+    uint8_t gpio_val = 0;
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+    gpio_val = gpio_val & ~m_setGPIOLED4;
+    if (LMS_GPIOWrite(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    // Read and log GPIO values
+    if (LMS_GPIORead(m_lms_device, &gpio_val, 1) != 0)
+    {
+        error();
+    }
+
+    LOG_RADIO_TRACE("set_HW_STREAM_LED_OFF() gpio readback {0:X}", gpio_val);
+    LOG_APP_INFO("Set STREAM LED OFF: {0:X}", gpio_val);
 }

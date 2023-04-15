@@ -1,7 +1,7 @@
 ########################################################################
-## Create RPX-100 project (Implementation of WRAN IEE802.22)
+## Create RPX-100 project
 ########################################################################
-cmake_minimum_required(VERSION 3.25.1)
+cmake_minimum_required(VERSION 3.24.x)
 project("RPX-100" DESCRIPTION "Open SDR Platform" LANGUAGES CXX C)
 
 
@@ -13,10 +13,9 @@ project("RPX-100" DESCRIPTION "Open SDR Platform" LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-## export compiler settings to json for remote development
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-## optimizing only for AMD, must be disabled for ARM (WRAN runs on ARM !)
+## optimizing must be looked at in more details - especially what is helping on complex math and fft
 # add_definitions(-march=native)
 # add_definitions(-mfpmath=sse)
 
@@ -154,19 +153,19 @@ endif()
 
 ## add argon2 sources for compiling
 set(ARGON2_SOURCES
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/argon2.c
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/core.c
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/thread.c
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/ref.c
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/encoding.c
-        ${PROJECT_SOURCE_DIR}/external/argon2/src/blake2/blake2b.c
+        external/argon2/src/argon2.c
+        external/argon2/src/core.c
+        external/argon2/src/thread.c
+        external/argon2/src/ref.c
+        external/argon2/src/encoding.c
+        external/argon2/src/blake2/blake2b.c
         )
 
 
 ## create RPX-100 executable
-add_executable(radio_test radio_test.cpp ${RPX-100_SOURCES} ${ARGON2_SOURCES})
-target_include_directories(radio_test PUBLIC ${RPX-100_INCLUDES})
-target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+add_executable(RPX-100 RPX-100.cpp ${RPX-100_SOURCES} ${ARGON2_SOURCES})
+target_include_directories(RPX-100 PUBLIC ${RPX-100_INCLUDES})
+target_link_libraries(RPX-100 liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
 

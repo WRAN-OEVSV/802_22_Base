@@ -22,7 +22,7 @@ class LimeRadioThread : public RadioThread {
 public:
 
     size_t LMS_Channel = 0;
-    
+
 
     LimeRadioThread();
     LimeRadioThread(int sampleBufferCnt);
@@ -39,7 +39,9 @@ public:
     void set_HW_SDR_ON();
     void set_HW_SDR_OFF();
     void set_HW_RX();
-    void set_HW_TX(TxMode m);
+    void set_HW_TX(uint8_t m);
+    void set_HW_STREAM_LED_ON();
+    void set_HW_STREAM_LED_OFF();
 
 private:
 
@@ -57,7 +59,7 @@ private:
 
     RadioThreadIQDataQueuePtr m_IQdataRXQueue; // = std::make_shared<RadioThreadIQDataQueue>();
     RadioThreadIQDataPtr m_rxIQdataOut;
-    
+
     //data buffers for TX
     const int m_txSampleCnt; //complex samples per buffer is set via constructor
     void *m_txIQbuffer  { nullptr };
@@ -69,7 +71,7 @@ private:
 
     int initLimeSDR();
     void closeLimeSDR();
-    
+
     void initStreaming();
     void stopStreaming();
 
@@ -79,15 +81,20 @@ private:
 
     int error();
 
-    
+
     // Radio Frontend - Define GPIO settings for CM4 hat module
     uint8_t m_setGPIORX = 0x00;       // GPIO0=LOW - RX, GPIO1=LOW - PA off, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
     uint8_t m_setGPIOTXDirect = 0x0F; // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=HIGH - no Bandfilter
     uint8_t m_setGPIOTX6m = 0x03;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=LOW - 50Mhz Bandfilter
-    uint8_t m_setGPIOTX2m = 0x07;     // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
+    uint8_t m_setGPIOTX2m = 0x07;     // GPIO0=HIGH- TX, GPIO1=HIGH - PA on, GPIO2=HIGH & GPIO3=LOW - 144Mhz Bandfilter
     uint8_t m_setGPIOTX70cm = 0x0B;   // GPIO0=HIGH - TX, GPIO1=HIGH - PA on, GPIO2=LOW & GPIO3=HIGH - 433Mhz Bandfilter
 
-    std::string m_modeName[9] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
-    uint8_t m_modeGPIO[9] = {m_setGPIORX, m_setGPIOTXDirect, m_setGPIOTX6m, m_setGPIOTX2m, m_setGPIOTX70cm};
+    uint8_t m_setGPIOLED1 = 0x10;   // GPIO4=HIGH
+    uint8_t m_setGPIOLED2 = 0x20;   // GPIO5=HIGH
+    uint8_t m_setGPIOLED3 = 0x40;   // GPIO6=HIGH
+    uint8_t m_setGPIOLED4 = 0x80;   // GPIO7=HIGH
+
+    std::string m_modeName[5] = {"RX", "TXDirect", "TX6m", "TX2m", "TX70cm"};
+    uint8_t m_modeGPIO[5] = {m_setGPIORX, m_setGPIOTXDirect, m_setGPIOTX6m, m_setGPIOTX2m, m_setGPIOTX70cm};
 
 };
