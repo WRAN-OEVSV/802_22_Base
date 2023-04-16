@@ -5,6 +5,8 @@
 
 #include "util/ws_spectrogram.h"
 #include <nlohmann/json.hpp>
+#include <arpa/inet.h>
+#include <array>
 
 
 /*
@@ -30,6 +32,7 @@ https://github.com/jledet/waterfall (change script.js to point to localhost and 
 */
 
 
+
 wsSpectrogram::wsSpectrogram(int port) : WebSocketServer(port) {
 
     LOG_TEST_INFO("wsSpectrogram::wsSpectrogram() port {} ", port);
@@ -39,6 +42,39 @@ wsSpectrogram::wsSpectrogram(int port) : WebSocketServer(port) {
 
     m_isWsRunning.store(false);
     m_socketsOn.store(false);
+    // three blocks of mock data - delete in production
+    { // shorten variable scope using the block - IPv4 Only
+        neighborCacheEntry cacheEntry;
+        unsigned char data[]{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        ::memcpy(cacheEntry.mac, data, 6);
+        std::array<unsigned char, 4> ipv4_1 = {1, 2, 3, 4};
+        cacheEntry.callsign = "OE3BIA";
+        cacheEntry.comment = "box owner";
+        cacheEntry.ipv4.push_back(ipv4_1);
+        neighbor_cache.push_back(cacheEntry);
+    }
+    { // shorten variable scope using the block - IPv6 Only
+        neighborCacheEntry cacheEntry;
+        unsigned char data[]{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        ::memcpy(cacheEntry.mac, data, 6);
+        std::array<unsigned char, 16> ipv6_1 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ,14, 15, 16};
+        cacheEntry.ipv6.push_back(ipv6_1);
+        std::array<unsigned char, 16> ipv6_2 = {17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
+        cacheEntry.ipv6.push_back(ipv6_2);
+        cacheEntry.comment = "unknown user - investigate";
+        neighbor_cache.push_back(cacheEntry);
+    }
+    { // shorten variable scope using the block - Mixed Only
+        neighborCacheEntry cacheEntry;
+        unsigned char data[]{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        ::memcpy(cacheEntry.mac, data, 6);
+        std::array<unsigned char, 4> ipv4_1 = {1, 2, 3, 4};
+        cacheEntry.ipv4.push_back(ipv4_1);
+        std::array<unsigned char, 16> ipv6_1 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ,14, 15, 16};
+        cacheEntry.callsign = "OE9RIR";
+        cacheEntry.ipv6.push_back(ipv6_1);
+        neighbor_cache.push_back(cacheEntry);
+    }
 }
 
 
@@ -244,6 +280,23 @@ void wsSpectrogram::onMessage(int socketID, const string& data) {
             int arg = json_data["arg"].get<int>();
             LOG_TEST_INFO("arg value is {}", arg);
         }
+    } else if (cmd == "neighbor_cache") {
+        if (json_data.contains("sub_cmd")) {
+            if (json_data["sub_cmd"].is_string()) {
+                std::string sub_command{json_data["sub_cmd"]};
+                LOG_TEST_INFO("processing action {}", sub_command);
+                if (sub_command == "list") {
+                    auto & userName = this->connections[socketID]->getUser();
+                    auto & user = this->users[userName];
+                    if (user.hasPermission("read_neighbour_cache")) {
+                        nlohmann::json j = {
+                            {"neighbor-cache", {{"list", this->neighbor_cache}}}
+                        };
+                        this->send(socketID, j.dump());
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -260,14 +313,46 @@ void wsSpectrogram::onError(int socketID, const string& message) {
 }
 
 
+std::string ipv4ToString(const unsigned char * ipv4) {
+    char str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, ipv4, str, INET_ADDRSTRLEN);
+    return std::string{str};
+}
 
+std::string ipv6ToString(const unsigned char * ipv6) {
+    char str[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
+    return std::string{str};
+}
 
+std::string macToString(const unsigned char * mac) {
+    char buf[18];
+    ::sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return std::string{buf};
+}
 
+void to_json(nlohmann::json& j, const neighborCacheEntry& p) {
+    vector<std::string> ipv4;
+    vector<std::string> ipv6;
+    std::transform(p.ipv4.begin(), p.ipv4.end(), std::inserter(ipv4, ipv4.end()),
+       [](std::array<unsigned char, 4> ip) {
+            return ipv4ToString(ip.data());
+       }
+    );
+    std::transform(p.ipv6.begin(), p.ipv6.end(), std::inserter(ipv6, ipv6.end()),
+       [](std::array<unsigned char, 16> ip) {
+            return ipv6ToString(ip.data());
+        }
+    );
+    j = nlohmann::json {
+        {"MAC", macToString(reinterpret_cast<const unsigned char *>(&(p.mac)))},
+        {"IPv4", ipv4},
+        {"IPv6", ipv6},
+        {"callsign", p.callsign},
+        {"comment", p.comment}
+    };
+}
 
-
-
-
-
-
-
-
+void from_json(const nlohmann::json& j, neighborCacheEntry& p) {
+    // this will never ever happen. Neighbour caches are read only.
+}

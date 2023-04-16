@@ -105,12 +105,12 @@ public:
 protected:
     // Nothing, yet.
 
+    map<string, User> users;
 private:
     int                  _port;
     string               _keyPath;
     string               _certPath;
     struct lws_context  *_context;
-    map<string, User> users;
 
     void _removeConnection( int socketID );
 };
