@@ -157,12 +157,12 @@ endif()
 
 ## add argon2 sources for compiling
 set(ARGON2_SOURCES
-        external/argon2/src/argon2.c
-        external/argon2/src/core.c
-        external/argon2/src/thread.c
-        external/argon2/src/ref.c
-        external/argon2/src/encoding.c
-        external/argon2/src/blake2/blake2b.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/argon2.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/core.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/thread.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/ref.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/encoding.c
+        ${PROJECT_SOURCE_DIR}/external/argon2/src/blake2/blake2b.c
         )
 
 
@@ -170,6 +170,12 @@ set(ARGON2_SOURCES
 add_executable(RPX-100 RPX-100.cpp ${RPX-100_SOURCES} ${ARGON2_SOURCES})
 target_include_directories(RPX-100 PUBLIC ${RPX-100_INCLUDES})
 target_link_libraries(RPX-100 liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
+
+
+## create radio_test executable
+add_executable(radio_test radio_test.cpp ${RPX-100_SOURCES} ${ARGON2_SOURCES})
+target_include_directories(radio_test PUBLIC ${RPX-100_INCLUDES})
+target_link_libraries(radio_test liquid::liquid websockets LimeSuite Threads::Threads nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SystemConfig.json ${CMAKE_CURRENT_BINARY_DIR}/SystemConfig.json COPYONLY)
 
