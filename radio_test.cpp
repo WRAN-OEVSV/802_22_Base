@@ -50,7 +50,7 @@ int main(int argc, const char* argv[])
 
     // some generic system init must be implement which is setting up all the "utilities" stuff
     // init logging for spdlog
-    Log::Init();
+    Log::Init(0, "RPX-100.log");
 
     // init cmdline parsing w/ cxxopts
     cxxopts::Options options("radio_test", "Test PHY SDR RX / TX");
