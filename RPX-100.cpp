@@ -114,7 +114,7 @@ int main(int argc, const char* argv[])
 
     if(result.count("p")) {
         PhyThread *phy;
-        phy = new PhyThread(1);
+        phy = new PhyThread(PhyThread::PhyMode::TEST);
         LOG_APP_INFO("PHY Layer running");
         phy->setRXQueue(iqpipe_rx);
         LOG_APP_INFO("RXQueue");
