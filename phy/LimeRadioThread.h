@@ -15,6 +15,7 @@
 
 #include "lime/LimeSuite.h"
 #include "liquid/liquid.h"
+#include "phy/RadioThread.h"
 
 #include "util/log.h"
 
