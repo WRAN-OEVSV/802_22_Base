@@ -51,28 +51,15 @@ void WebSocketSink<Mutex>::sink_it_(const spdlog::details::log_msg &msg)
 
 void Log::Init()
 {
-
-    spdlog::set_pattern("%^[%T] %n: %v%$");
-    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto socket_sink = std::make_shared<WebSocketSink_mt>();
-    auto max_size = 1048576 * 5;
-    auto max_files = 3;
-
-    s_RadioLogger = std::make_shared<spdlog::logger>(spdlog::logger("RADIO", {console_sink, socket_sink}));
-    s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {console_sink, socket_sink}));
-    s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {console_sink, socket_sink}));
-    s_WebLogger = std::make_shared<spdlog::logger>(spdlog::logger("WEB", {socket_sink}));
-    s_AppLogger = spdlog::rotating_logger_mt("APP", "/var/log/RPX-100.log", max_size, max_files);
-
-    s_RadioLogger->set_level(spdlog::level::trace);
-    s_PhyLogger->set_level(spdlog::level::trace);
-    s_TestLogger->set_level(spdlog::level::trace);
-    s_WebLogger->set_level(spdlog::level::trace);
-    s_AppLogger->set_level(spdlog::level::trace);
-    spdlog::set_level(spdlog::level::trace);
+    Init(0);
 }
 
 void Log::Init(int level)
+{
+    Init(level, DEFAULT_RPX100_LOG_FILE);
+}
+
+void Log::Init(int level, spdlog::filename_t logfile_name)
 {
 
     spdlog::set_pattern("%^[%T] %n: %v%$");
@@ -85,7 +72,7 @@ void Log::Init(int level)
     s_PhyLogger = std::make_shared<spdlog::logger>(spdlog::logger("PHY", {console_sink, socket_sink}));
     s_TestLogger = std::make_shared<spdlog::logger>(spdlog::logger("TEST", {console_sink, socket_sink}));
     s_WebLogger = std::make_shared<spdlog::logger>(spdlog::logger("WEB", {socket_sink}));
-    s_AppLogger = spdlog::rotating_logger_mt("APP", "/var/log/RPX-100.log", max_size, max_files);
+    s_AppLogger = spdlog::rotating_logger_mt("APP", logfile_name, max_size, max_files);
 
     switch (level)
     {

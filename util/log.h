@@ -5,11 +5,14 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 
+#define DEFAULT_RPX100_LOG_FILE "/var/log/RPX-100.log"
+
 class Log {
 public:
 
-    static void Init(int level);
     static void Init();
+    static void Init(int level);
+    static void Init(int level, spdlog::filename_t logfile_name);
 
     static inline std::shared_ptr<spdlog::logger>& getRadioLogger() { return s_RadioLogger; }
     static inline std::shared_ptr<spdlog::logger>& getPhyLogger() { return s_PhyLogger; }
