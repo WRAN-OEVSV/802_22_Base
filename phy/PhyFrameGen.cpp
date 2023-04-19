@@ -37,6 +37,9 @@ PhyFrameGen::PhyFrameGen(unsigned int M,
     m_x = (liquid_float_complex*) FFT_MALLOC((m_M)*sizeof(liquid_float_complex));
     m_ifft = FFT_CREATE_PLAN(m_M, m_x, m_X, FFT_DIR_BACKWARD, FFT_METHOD);
 
+    m_frame_len = m_M + m_cp_len;    // frame length
+    m_buf_tx = (liquid_float_complex*) FFT_MALLOC((m_frame_len)*sizeof(liquid_float_complex));
+
 
     // allocate memory for PLCP arrays
     m_STS = (liquid_float_complex*) malloc((m_M)*sizeof(liquid_float_complex)); // q->S0 frequency domain
@@ -57,6 +60,8 @@ PhyFrameGen::PhyFrameGen(unsigned int M,
     m_postfix = (liquid_float_complex*) malloc(m_taper_len * sizeof(liquid_float_complex));
 
 
+
+
     // initalize m_taper and m_postfix
     unsigned int i;
 
@@ -71,7 +76,11 @@ PhyFrameGen::PhyFrameGen(unsigned int M,
 
 }
 
+PhyFrameGen::~PhyFrameGen() {
+    LOG_PHY_INFO("PhyFrameGen::~PhyFrameGen() called");
+    // free up all stuff
 
+}
 
 /**
  * @brief initalize the STS seqence in frequency and time domain
@@ -93,24 +102,25 @@ int PhyFrameGen::init_STS() {
     // // generate m-sequence generator object
     // msequence ms = msequence_create(ms_m, ms_g, ms_a);
 
-    unsigned int sts_sequence[256] = 
-        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 
-          1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 
-          0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 
-          1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 
-          0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 
-          0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 
-          0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 
-          0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 
-          1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 
-          0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 
-          0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 
-          1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 
-          0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 
-          1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 
-          0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 
-          1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1 };
+    // unsigned int sts_sequence[256] = 
+    //     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 
+    //       1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 
+    //       0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 
+    //       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 
+    //       0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 
+    //       0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 
+    //       0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 
+    //       0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 
+    //       1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 
+    //       0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 
+    //       0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 
+    //       1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 
+    //       0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 
+    //       1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 
+    //       0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 
+    //       1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1 };
 
+    unsigned int sts_sequence[256] = PHY_STS_SEQUENCE;                  // defined in PhyDefinitions.h
 
     unsigned int s;
     unsigned int M_STS = 0;
@@ -134,7 +144,7 @@ int PhyFrameGen::init_STS() {
 
     // do an fftshift of m_STS of the STS Sync symbol as the sender (for the test gnuradio) is
     // shifting the sync also 
-    // @todo check for futur if we still do this - further the DC subcarriers should be checked again
+    // @todo check if we still do this in the final version - further the DC subcarriers should be checked again
     // @todo as the generated sequence is not 100% what the standard describes
     liquid_float_complex tmp;
 
@@ -168,7 +178,7 @@ int PhyFrameGen::init_STS() {
     // normalize time-domain sequence level
     float g = 1.0f / sqrtf(M_STS);
     for (i=0; i<m_M; i++)
-        m_sts[i] *= g;
+        m_sts[i] *= g * 0.5;           // @todo CHECK CHECK how to handle the gain of the IQ signal ..seems to be overloading for testing lower
 
     return 0;
 }
@@ -239,5 +249,28 @@ int PhyFrameGen::genSymbol(liquid_float_complex * _buffer)
 
     // copy post-fix to output (first 'taper_len' samples of input symbol)
     memmove(m_postfix, m_x, m_taper_len*sizeof(liquid_float_complex));
+
+
+    // ensure that buffer is empty
+    m_tx_buffer->data.clear();
+
+    //move time iq data in tx symbol buffer
+    for(auto s=0; s < (m_M+m_cp_len); s++) {
+        m_tx_buffer->data.push_back(m_x[s]);    
+    }
+
+ //   std::cout << "gs" << std::endl;               // DEBUG
+
     return 0;
+}
+
+
+
+
+
+
+void PhyFrameGen::setTXBuffer(const RadioIQDataPtr& buffer) {
+//    std::lock_guard < std::mutex > lock(m_queue_bindings_mutex);
+    LOG_RADIO_DEBUG("PhyFrameGen::setTXBuffer()");
+    m_tx_buffer = buffer;
 }

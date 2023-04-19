@@ -4,10 +4,13 @@
 #include <iostream>
 #include <fstream>
 
-#include "liquid.h"
+#include "liquid/liquid.h"
 
 #include "phy/RadioThread.h"
+#include "phy/Radio.h"
+#include "phy/LimeRadio.h"
 #include "phy/PhyFrameSync.h"
+#include "phy/PhyFrameGen.h"
 #include "phy/PhyDefinitions.h"
 
 #include "util/log.h"
@@ -19,6 +22,8 @@
 class PhyTiminig {
 
 
+// NCO is relevant for the CPE side; to control any carrier drift and respective lock to the BS carrier
+
 
 };
 
@@ -27,8 +32,17 @@ class PhyTiminig {
 class PhyThread {
 public:
 
+    typedef enum
+    {
+        BASESTATION=0,
+        CPE,
+        TEST
+    } PhyMode;
 
-    PhyThread(int phyMode);
+    PhyThread(PhyMode mode);
+
+    PhyThread(PhyMode mode, float_t samp_rate, size_t oversampling, float_t center_freq);
+
 
     ~PhyThread();
 
@@ -53,10 +67,26 @@ public:
     ThreadIQDataQueueBasePtr getTXQueue();
 
 
+    bool isPhyRunning() {
+        return m_isPhyRunning.load();
+    }
+
+    void stop() {
+        stopping.store(true);
+    }
+
+
+
+
+
 protected:
 
     ThreadIQDataQueueBasePtr m_tx_queue;
     ThreadIQDataQueueBasePtr m_rx_queue;
+
+    RadioIQDataPtr m_iqbuffer_rx = std::make_shared<RadioIQData>();
+    RadioIQDataPtr m_iqbuffer_tx = std::make_shared<RadioIQData>();
+
 
     std::atomic_bool stopping;
 
@@ -68,16 +98,30 @@ protected:
 private:
 
 
-    PhyFrameSync m_frameSync;
-
+    // thread related variables
     std::atomic_bool terminated;
+
+
+    // sdr related variables
+    Radio *m_sdrRadio;      // create in constructor
+    float_t m_samp_rate;
+    size_t m_oversampling;
+    float_t m_center_freq;
+    uint64_t m_currentSampleTimestamp;
+
+
+
+    PhyFrameSync m_frameSync;
+    PhyFrameGen m_frameGen;
+
+    uint64_t    m_framestart_timestamp;
 
     /**
      * @brief phyMode is either 0 for BaseStation; 1 for CPE; or other future modes
      * @brief default the Phy is running as BaseStation; mode cannot be changed on runtime
      * 
      */
-    const int m_phyMode;
+    const PhyMode m_phyMode;
 
 
     RadioThreadIQDataQueuePtr m_IQdataRXQueue; // = std::make_shared<RadioThreadIQDataQueue>();
@@ -87,6 +131,5 @@ private:
     RadioThreadIQDataPtr m_txIQdataOut;
 
 
-    uint64_t m_currentSampleTimestamp;
 
 };

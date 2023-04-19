@@ -53,14 +53,18 @@ include(${CPM_DOWNLOAD_LOCATION})
 set(RPX-100_SOURCES
         "${PROJECT_SOURCE_DIR}/phy/LimeRadioThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/RadioThread.cpp"
+        "${PROJECT_SOURCE_DIR}/phy/LimeRadio.cpp"
+        "${PROJECT_SOURCE_DIR}/phy/Radio.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyFrameSync.cpp"
+        "${PROJECT_SOURCE_DIR}/phy/PhyFrameGen.cpp"
         "${PROJECT_SOURCE_DIR}/util/log.cpp"
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
         "${PROJECT_SOURCE_DIR}/util/WebSocketServer.cpp"
         "${PROJECT_SOURCE_DIR}/util/Argon2Wrapper.cpp"
-        "${PROJECT_SOURCE_DIR}/util/User.cpp")
+        "${PROJECT_SOURCE_DIR}/util/User.cpp"
+        )
 
 set(RPX-100_INCLUDES
         "${PROJECT_SOURCE_DIR}"

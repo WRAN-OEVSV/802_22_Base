@@ -13,10 +13,15 @@
 //#include "liquid.internal.h"
 
 #include "phy/PhyDefinitions.h"
+#include "phy/Radio.h"
 #include "util/log.h"
 
 
-
+/**
+ * @brief PhyFrameGen class holds components which are required to create symboles
+ *        The sending of the symbols is then done by the PhyThread which is handling
+ *        the statemachine for the PHY
+ */
 
 class PhyFrameGen {
 public:
@@ -32,16 +37,21 @@ public:
     ~PhyFrameGen();
 
 
+    void create_STS_symbol() { write_STS(m_buf_tx); }
+
+    void setTXBuffer(const RadioIQDataPtr& buffer);
 
 protected:
 
+    RadioIQDataPtr m_tx_buffer;
 
 private:
 
     // symbol information
     unsigned int m_M;                               // number of subcarriers
-    unsigned int m_M2;                               // number of subcarriers div by 2
+    unsigned int m_M2;                              // number of subcarriers div by 2
     unsigned int m_cp_len;                          // cyclic prefix length
+    unsigned int m_frame_len;                       // frame length ( M+cp)
 
     unsigned char * m_subcarrier_allocation_STS;    // subcarrier allocation (null, pilot, data)
     unsigned char * m_subcarrier_allocation_LTS;    // subcarrier allocation (null, pilot, data)
@@ -71,6 +81,9 @@ private:
     liquid_float_complex *m_X;      // frequency-domain buffer
     liquid_float_complex *m_x;      // time-domain buffer
     windowcf m_input_buffer;  // input sequence buffer
+
+    liquid_float_complex *m_buf_tx;      // frequency-domain TX buffer
+
 
     // STS and LTS sequences
     liquid_float_complex *m_STS;     // STS sequence (freq) //_S0
