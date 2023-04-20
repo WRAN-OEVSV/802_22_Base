@@ -63,6 +63,7 @@ int main(int argc, const char* argv[])
       ("w", "write CSV file")
       ("s", "websocket for spectrogram")
       ("p", "phy testing")
+      ("b", "phy basestation")
       ("l", "gpio test")
     ;
 
@@ -174,7 +175,11 @@ int main(int argc, const char* argv[])
     
     if(result.count("p")) {
         PhyThread *phy;
-        phy = new PhyThread(PhyThread::PhyMode::BASESTATION, cf_samp_rate, cf_oversampling, cf_center_freq);
+        if(result.count("b")) {
+            phy = new PhyThread(PhyThread::PhyMode::BASESTATION, cf_samp_rate, cf_oversampling, cf_center_freq);
+        } else {
+            phy = new PhyThread(PhyThread::PhyMode::CPE, cf_samp_rate, cf_oversampling, cf_center_freq);
+        }
 
         //wait for waitTime seconds and then stop the phy thread to limit the amount
         //of data collected for testing
