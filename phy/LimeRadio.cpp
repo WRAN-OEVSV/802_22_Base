@@ -150,6 +150,7 @@ int LimeRadio::send_IQ_data() {
             //Send samples with delay from RX (waitForTimestamp is enabled)
             m_tx_metadata.timestamp = m_IQdataTXBuffer->timestampFirstSample;
             LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, &m_tx_metadata, 500);    // @todo error handling on send error
+        //    std::cout << m_tx_metadata.timestamp << std::endl;
 
             // for testing send without metadata
             // LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, nullptr, 500);    // @todo error handling on send error
@@ -208,7 +209,7 @@ int LimeRadio::send_Tone() {
 
         //Send samples with delay from RX (waitForTimestamp is enabled)
 //        m_tx_metadata.timestamp = m_IQdataTXBuffer->timestampFirstSample;
-        LMS_SendStream(&m_tx_streamId, tx_buffer, samplesWrite, nullptr, 500);    // @todo error handling on send error
+        LMS_SendStream(&m_tx_streamId, tx_buffer, samplesWrite, nullptr, 100);    // @todo error handling on send error
 
     } else {
         LOG_RADIO_ERROR("send_IQ_data(): m_isRX is true -- are we set to receive ????");
@@ -226,8 +227,8 @@ uint64_t LimeRadio::get_sample_timestamp() {
 
     // LOG_RADIO_INFO("LimeRadio::receive_IQ_data(): receive IQ data from current SDR");
 
-    m_isRxTxRunning.store(true);
-    m_IQdataRXBuffer = Radio::getRXBuffer();
+    //m_isRxTxRunning.store(true);
+    //m_IQdataRXBuffer = Radio::getRXBuffer();
 
     // std::cout << m_IQdataRXBuffer << std::endl;
 
@@ -238,16 +239,26 @@ uint64_t LimeRadio::get_sample_timestamp() {
 
  
     // clear out RX buffer from potential old stuff
-    m_IQdataRXBuffer->data.clear();
+    //m_IQdataRXBuffer->data.clear();
 
     // Receive samples to get current timestamp
-    int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, 4000, &m_rx_metadata, 500);
+    //int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, 4000, &m_rx_metadata, 500);
 
-  //  std::cout << m_rx_metadata.timestamp << std::endl;
+    lms_stream_status_t rx_status;
+    lms_stream_status_t tx_status;
 
-    m_isRxTxRunning.store(false);
+    LMS_GetStreamStatus(&m_rx_streamId, &rx_status);
+    LMS_GetStreamStatus(&m_tx_streamId, &tx_status);
 
-    return m_rx_metadata.timestamp;
+
+
+    // std::cout << "RX: " << rx_status.timestamp << " : " << rx_status.overrun << " : " << rx_status.underrun << " : " << rx_status.droppedPackets << std::endl;
+    // std::cout << "TX: " << tx_status.timestamp << " : " << tx_status.overrun << " : " << tx_status.underrun << " : " << tx_status.droppedPackets << std::endl;
+
+    //m_isRxTxRunning.store(false);
+
+    return rx_status.timestamp;
+//    return m_rx_metadata.timestamp;
 
 }
 
@@ -324,8 +335,8 @@ int LimeRadio::initLimeSDR() {
 
 
     // set TX Antennna, Gain and calibrate
-    if(LMS_SetAntenna(m_lms_device, LMS_CH_TX, LMS_Channel, LMS_PATH_TX1) != 0)
-        error();
+    // if(LMS_SetAntenna(m_lms_device, LMS_CH_TX, LMS_Channel, LMS_PATH_TX1) != 0)
+    //     error();
 
     if(LMS_SetNormalizedGain(m_lms_device, LMS_CH_TX, LMS_Channel, DEFAULT_NOM_TX_GAIN) != 0)
         error();
@@ -412,7 +423,7 @@ void LimeRadio::initStreaming() {
     LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_tx_streamId.handle);
 
     //Streaming Metadata
-    m_tx_metadata.flushPartialPacket = false; //currently has no effect in RX
+    m_tx_metadata.flushPartialPacket = true; //currently has no effect in RX
     m_tx_metadata.waitForTimestamp = true; //currently has no effect in RX
 
 
