@@ -3,6 +3,8 @@
 #include <complex>
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include <unistd.h>
 
 #include "liquid/liquid.h"
 
