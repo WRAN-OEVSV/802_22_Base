@@ -340,7 +340,7 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
         }
         break;
     case FRAMESYNC_STATE_RXSYMBOLS:
-        if(m_wait > (3*1280)) {
+        if(m_wait > (16*1280)) {
             m_wait = 0;
             m_timer = 0;
             m_frameSyncState = FRAMESYNC_STATE_SYNC_STS;
@@ -475,8 +475,7 @@ int PhyFrameSync::execute_sync_STS() {
         if(m_timer == 1) std::cout << ":";
         return 0;
     }
-
-  //  std::cout << std::endl;
+    std::cout << std::endl;
 
     // reset timer
     m_timer = 0;
