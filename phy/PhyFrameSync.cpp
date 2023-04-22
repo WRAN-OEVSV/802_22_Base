@@ -363,7 +363,7 @@ int PhyFrameSync::execute_detect_STS() {
 
     m_timer++;
 
-    if (m_timer < (m_M/4))             // smaller serach window
+    if (m_timer < (m_M/4))             // smaller search window
         return 0;
 
     // reset timer
@@ -410,6 +410,7 @@ int PhyFrameSync::execute_detect_STS() {
 
  //   std::cout << "grepgrepgrep," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << m_timer << std::endl;
 
+    std::cout << "g " << g << "rssi " << -10*log10(g) << std::endl;
 
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
