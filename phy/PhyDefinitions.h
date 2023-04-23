@@ -6,8 +6,10 @@
 #define PHY_TAPERLEN              32
 
 #define PHY_CP_STS_LTS            256
+//2.0f  -> 1.8f ?
 #define PHY_STS_DETECT_LWR_THR    2.0f
-#define PHY_STS_DETECT_UPR_THR    3.0f
+//3.0f  -> 3.8f ?
+#define PHY_STS_DETECT_UPR_THR    3.8f
 
 
 // orig

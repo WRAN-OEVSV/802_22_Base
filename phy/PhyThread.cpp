@@ -181,6 +181,14 @@ void PhyThread::run() {
             // read samples from sdr radio; amount of samples is defined when sdr class gets initalized
             m_sdrRadio->receive_IQ_data();
 
+            if(m_currentSampleTimestamp != m_iqbuffer_rx->timestampFirstSample) {
+                std::cout << std::endl << "DEBUG: lost samples !!! " << m_currentSampleTimestamp << ":";
+                std::cout << m_iqbuffer_rx->timestampFirstSample << ":";
+                std::cout << (m_iqbuffer_rx->timestampFirstSample - m_currentSampleTimestamp) << ":";
+                std::cout << m_sdrRadio->m_rx_status.overrun << ":" << m_sdrRadio->m_rx_status.underrun;
+                std::cout << std::endl;
+            }
+
             m_currentSampleTimestamp = m_iqbuffer_rx->timestampFirstSample;
 
             std::cout << m_currentSampleTimestamp << " " << m_iqbuffer_rx->data.size() << std::endl; //debug

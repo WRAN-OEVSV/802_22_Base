@@ -316,7 +316,7 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
 
     switch (m_frameSyncState)
     {
-    case FRAMESYNC_STATE_DETECT_STS:
+    case FRAMESYNC_STATE_DETECT_STS:            //default
         execute_detect_STS();
         break;
 
@@ -410,10 +410,12 @@ int PhyFrameSync::execute_detect_STS() {
 
  //   std::cout << "grepgrepgrep," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_hat << "," << m_timer << std::endl;
 
-    std::cout << "g " << g << "rssi " << -10*log10(g) << std::endl;
 
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
+
+    if(g < 300)
+       std::cout  << "detect: g " << g << " rssi " << -10*log10(g) << " shat " << std::abs(s_hat)  << std::endl;
 
     // 
     if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
@@ -473,7 +475,7 @@ int PhyFrameSync::execute_sync_STS() {
     // at this point we should be in the CP of the STS frame (after the inital lock)
     // we move towards the lower threshold in sample chunks
     if (m_timer < 31) {
-        if(m_timer == 1) std::cout << ":";
+        // if(m_timer == 1) std::cout << ":";
         return 0;
     }
     //std::cout << std::endl;
@@ -512,6 +514,10 @@ int PhyFrameSync::execute_sync_STS() {
 
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
+
+    // // DEBUG RSSI !!!
+    // if(g < 10000)
+    //     std::cout  << "sync: g " << g << " rssi " << -10*log10(g) << " shat " << std::abs(s_hat)  << std::endl;
 
 
     if (std::abs(s_hat) > m_STS_detect_lower_thresh) {

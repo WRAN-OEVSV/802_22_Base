@@ -12,5 +12,7 @@
 
 
 #define DEFAULT_NOM_TX_GAIN 0.7
+// 0.45 sind laut GUI 33db
+#define DEFAULT_NOM_RX_GAIN 0.45
 
 #define DEFAULT_SAMPLEBUFFERCNT 5000
