@@ -77,7 +77,10 @@ int LimeRadio::receive_IQ_data() {
 
         // Receive samples
         // @todo - check flag when there is a buffer overflow on the Lime .. i.e. we are getting samples too slow
-        int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
+        int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 100);     // timeout 500->100
+
+        LMS_GetStreamStatus(&m_rx_streamId, &m_rx_status);
+
 
         //I and Q samples are interleaved in buffer: IQIQIQ...
         float *pp = (float *)m_rxIQbuffer;
@@ -244,6 +247,9 @@ uint64_t LimeRadio::get_sample_timestamp() {
     // Receive samples to get current timestamp
     //int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, 4000, &m_rx_metadata, 500);
 
+
+    // @todo -- update to class member variables
+
     lms_stream_status_t rx_status;
     lms_stream_status_t tx_status;
 
@@ -331,6 +337,14 @@ int LimeRadio::initLimeSDR() {
     //This set sampling rate for all channels
     if (LMS_SetSampleRate(m_lms_device, DEFAULT_SAMPLE_RATE, DEFAULT_OVERSAMPLING) != 0)
         error();
+
+
+    // set RX Antennna, Gain and calibrate
+    // LMS_SetAntenna ??
+    if(LMS_SetNormalizedGain(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_NOM_RX_GAIN) != 0)
+        error();
+
+    LMS_Calibrate(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_SAMPLE_RATE, 0 );
 
 
 

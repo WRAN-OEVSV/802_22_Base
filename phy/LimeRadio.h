@@ -44,6 +44,12 @@ public:
     void set_HW_RX();
     void set_HW_TX(TxMode m);
 
+
+
+    // lms_stream_status_t m_rx_status;    // status of RX stream from LMS_GetStatus   (is updated on receive and get timestamp)
+    // lms_stream_status_t m_tx_status;    // status of TX stream from LMS_GetStatus   (is updated on transmit and get timestamp)
+
+
 private:
 
     lms_device_t* m_lms_device = NULL;
@@ -51,6 +57,7 @@ private:
     lms_stream_t m_tx_streamId;         // TX stream structure
     lms_stream_meta_t m_rx_metadata;    // Use metadata for additional control over sample receive function behavior
     lms_stream_meta_t m_tx_metadata;    // Use metadata for additional control over sample receive function behavior
+
 
 
     //data buffers for RX
