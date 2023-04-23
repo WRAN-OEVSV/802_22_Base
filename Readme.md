@@ -50,3 +50,58 @@ Before compiling the code on the embedded device the following dependencies need
 
 Cloning for embedded devices has to be done recursive: `git clone --recursive git@github.com:WRAN-OEVSV/WebSDR.git`
 In the directory of the cloned source code do: `mkdir build && cd build && cmake .. && make`
+
+<h2>Get started with a new Odroid-C4:</h2>
+
+Download latest Ubuntu minimal image for Odroid-C4:<br>
+https://wiki.odroid.com/odroid-c4/os_images/ubuntu/minimal/20220705
+
+Extract the file on you host PC and connect the EMMC memory module for the Odroid-C4 to your USB port. Check in /dev/... the address of the
+EMMC, e.g. /dev/sdf
+
+On your host PC (linux):<br>
+```ruby
+sudo dd if=ubuntu-22.04-4.9-minimal-odroid-c4-hc4-20220705.img of=/dev/sdf
+```
+
+Plug the EMMC memory modul to the socket at the bottom of the Odroid-C4, connect the ethernet cable and power up the device. Check your Lan Router and find out the IP address asigned to the new Odroid-C4. Connect from your host PC (linux), initial password is ‘odroid’:<br>
+```ruby
+ssh root@10.0.0.134
+```
+
+Install prerequisits on your new Odroid-C4:<br>
+```ruby
+sudo apt update
+sudo apt upgrade
+sudo apt install build-essential
+sudo apt install automake autoconf
+sudo apt install libssl-dev libsoapysdr-dev limesuite
+```
+
+Install leatest version of CMAKE:<br>
+```ruby
+sudo apt update
+sudo apt upgrade
+sudo apt install -y software-properties-common lsb-release
+sudo apt clean all
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2 /dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg /dev/null
+sudo apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+sudo apt update
+sudo apt install cmake
+```
+
+Create a ssh-key for cloning and updating software in the Github repository:<br>
+```ruby
+ssh-keygen -t rsa -b 4096
+```
+
+The new key can be found in ~/.ssh/.id_rsa.pub. Copy the content of that file and past it as new key in your github settings:<br>
+https://github.com/settings/profile
+
+Clone the lates sofwarefor the RPX-100 from Github (recursive):<br>
+```ruby
+git clone --recursive git@github.com:WRAN-OEVSV/802_22_Base.git
+```
+
+Connect with Visual Code using the Remote SSH pugin:<br>
+https://code.visualstudio.com/docs/remote/ssh
