@@ -78,7 +78,7 @@ sudo apt install automake autoconf
 sudo apt install libssl-dev libsoapysdr-dev limesuite
 ```
 
-Install leatest version of CMAKE:<br>
+Install latest version of CMAKE:<br>
 ```ruby
 sudo apt update
 sudo apt upgrade
