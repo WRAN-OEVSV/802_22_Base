@@ -58,6 +58,7 @@ set(RPX-100_SOURCES
         "${PROJECT_SOURCE_DIR}/phy/PhyThread.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyFrameSync.cpp"
         "${PROJECT_SOURCE_DIR}/phy/PhyFrameGen.cpp"
+        "${PROJECT_SOURCE_DIR}/phy/PhyIQDebug.cpp"
         "${PROJECT_SOURCE_DIR}/util/log.cpp"
         "${PROJECT_SOURCE_DIR}/util/write_csv_file.cpp"
         "${PROJECT_SOURCE_DIR}/util/ws_spectrogram.cpp"
