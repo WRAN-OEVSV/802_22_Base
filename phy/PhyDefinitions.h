@@ -9,7 +9,7 @@
 //2.0f  -> 1.8f ?
 #define PHY_STS_DETECT_LWR_THR    2.0f
 //3.0f  -> 3.8f ?
-#define PHY_STS_DETECT_UPR_THR    3.8f
+#define PHY_STS_DETECT_UPR_THR    4.5f
 
 
 // orig

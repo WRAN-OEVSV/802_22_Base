@@ -15,6 +15,8 @@
 #include "phy/PhyFrameGen.h"
 #include "phy/PhyDefinitions.h"
 
+#include "phy/PhyIQDebug.h"
+
 #include "util/log.h"
 
 /**
@@ -78,7 +80,7 @@ public:
     }
 
 
-
+    PhyIQDebugPtr getIQDebug() { return m_iqdebug; }
 
 
 protected:
@@ -132,6 +134,6 @@ private:
     RadioThreadIQDataQueuePtr m_IQdataTXQueue; // = std::make_shared<RadioThreadIQDataQueue>();
     RadioThreadIQDataPtr m_txIQdataOut;
 
-
+    PhyIQDebugPtr m_iqdebug;
 
 };

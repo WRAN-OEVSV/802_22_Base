@@ -21,13 +21,17 @@ PhyThread::PhyThread(PhyMode mode, float_t samp_rate, size_t oversampling, float
     m_frameGen.setTXBuffer(m_iqbuffer_tx);
 
     // @todo change this to modular approach to being able to select what hardware gets initalized
-    m_sdrRadio = new LimeRadio(3200);                   // @todo change this 3200 is only for testing purpose at the moment
+    m_sdrRadio = new LimeRadio(1300);                   // the LMS streaming protocol sends depending on throughputvslatency different sizes for our case 4080@1.8ms (2.28MSps)
     m_sdrRadio->setFrequency(m_center_freq);
     m_sdrRadio->setSamplingRate(m_samp_rate, m_oversampling);
     m_sdrRadio->setRXBuffer(m_iqbuffer_rx);
     m_sdrRadio->setTXBuffer(m_iqbuffer_tx);
 
     m_framestart_timestamp = 0;
+
+
+    m_iqdebug = std::make_shared<PhyIQDebug>();
+    m_frameSync.setIQDebug(m_iqdebug);
 
 }
 
@@ -154,6 +158,9 @@ void PhyThread::run() {
 
         while(!stopping)
         {
+
+            auto t1 = std::chrono::steady_clock::now();
+
             //PhyThread statemachine
 
 
@@ -182,12 +189,16 @@ void PhyThread::run() {
             m_sdrRadio->receive_IQ_data();
 
             if(m_currentSampleTimestamp != m_iqbuffer_rx->timestampFirstSample) {
+                LOG_PHY_ERROR("lost samples !!!");
                 std::cout << std::endl << "DEBUG: lost samples !!! " << m_currentSampleTimestamp << ":";
                 std::cout << m_iqbuffer_rx->timestampFirstSample << ":";
                 std::cout << (m_iqbuffer_rx->timestampFirstSample - m_currentSampleTimestamp) << ":";
                 std::cout << m_sdrRadio->m_rx_status.overrun << ":" << m_sdrRadio->m_rx_status.underrun;
                 std::cout << std::endl;
             }
+
+
+            auto t2 = std::chrono::steady_clock::now();
 
             m_currentSampleTimestamp = m_iqbuffer_rx->timestampFirstSample;
 
@@ -197,8 +208,17 @@ void PhyThread::run() {
             {
                 m_frameSync.m_currentSampleTimestamp = m_currentSampleTimestamp;
                 m_frameSync.execute(sample);
+
+                m_iqdebug->push_iq(m_currentSampleTimestamp, sample);
+
                 m_currentSampleTimestamp++;
             }
+
+            auto t3 = std::chrono::steady_clock::now();
+
+            std::cout << "ts : ";
+            std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << " : ";
+            std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() << std::endl;
 
         }
 

@@ -13,6 +13,7 @@
 
 #include "phy/PhyDefinitions.h"
 #include "util/log.h"
+#include "PhyIQDebug.h"
 
 
 
@@ -32,6 +33,9 @@ public:
 
 
     uint64_t m_currentSampleTimestamp;
+
+
+    void setIQDebug(PhyIQDebugPtr iqd) { m_iqdebug = iqd; }
 
 protected:
 
@@ -123,6 +127,10 @@ private:
 
     bool m_STS_detect_hit_upper_tresh;  // set to true when in STS detection the upper limit is first hit (i.e. we need to backoff a bit)
 
+
+    int m_sync_STS_count;
+
+
     int init_STS_sctype(); 
     int init_LTS_sctype();
 
@@ -142,5 +150,8 @@ private:
 
     int STS_metrics(liquid_float_complex *G, liquid_float_complex &s );
 
+
+
+    PhyIQDebugPtr m_iqdebug;
 
 };

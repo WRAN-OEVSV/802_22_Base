@@ -72,6 +72,10 @@ int LimeRadio::receive_IQ_data() {
  
     if(m_isRX) {
 
+
+        auto t1 = std::chrono::steady_clock::now();
+
+
         // clear out RX buffer from potential old stuff
         m_IQdataRXBuffer->data.clear();
 
@@ -79,8 +83,11 @@ int LimeRadio::receive_IQ_data() {
         // @todo - check flag when there is a buffer overflow on the Lime .. i.e. we are getting samples too slow
         int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 100);     // timeout 500->100
 
+        auto t2 = std::chrono::steady_clock::now();
+
         LMS_GetStreamStatus(&m_rx_streamId, &m_rx_status);
 
+        auto t21 = std::chrono::steady_clock::now();
 
         //I and Q samples are interleaved in buffer: IQIQIQ...
         float *pp = (float *)m_rxIQbuffer;
@@ -100,6 +107,15 @@ int LimeRadio::receive_IQ_data() {
         } else {
             LOG_RADIO_DEBUG("no samples received!!");
         }
+
+
+        auto t3 = std::chrono::steady_clock::now();
+
+        std::cout << "ts read : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << " : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t21 - t1).count() << " : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() << std::endl;
+
 
     } else {
         LOG_RADIO_ERROR("receive_IQ_data(): m_isRX is false -- are we set to transmit ????");
@@ -378,11 +394,11 @@ void LimeRadio::initStreaming() {
     LOG_RADIO_INFO("Init RX Streaming");
 
     //Initialize stream
-    m_rx_streamId.channel = LMS_Channel;                 //channel number
-    m_rx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_rx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
-    m_rx_streamId.isTx = false;                          //RX channel
-    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
+    m_rx_streamId.channel = LMS_Channel;                 // channel number
+    m_rx_streamId.fifoSize = 1024 * 100;                 // fifo size in samples
+    m_rx_streamId.throughputVsLatency = 1;             // throughput vs speed -- 0.5 middle - 1.0 fastest
+    m_rx_streamId.isTx = false;                          // RX channel
+    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   // F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_rx_streamId) != 0)
         error();
 
@@ -412,8 +428,8 @@ void LimeRadio::initStreaming() {
 
     //Initialize TX stream
     m_tx_streamId.channel = LMS_Channel;                 //channel number
-    m_tx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_tx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
+    m_tx_streamId.fifoSize = 1024 * 100;                //fifo size in samples
+    m_tx_streamId.throughputVsLatency = 1;             //optimize for max throughput
     m_tx_streamId.isTx = true;                          //RX channel
     m_tx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_tx_streamId) != 0)
