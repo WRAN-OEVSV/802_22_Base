@@ -176,7 +176,7 @@ public:
 
     virtual int send_Tone();
 
-    virtual uint64_t get_sample_timestamp();
+    virtual uint64_t get_rx_timestamp();
 
 
 

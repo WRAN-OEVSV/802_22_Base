@@ -93,7 +93,7 @@ void PhyThread::run() {
         // first basic goal is to create the LTS/STS every 10ms w/o any data header,...
         // next step would then be to create a header symbol which is sent by the basestation and received correctly by the CPE
 
-        m_framestart_timestamp = m_sdrRadio->get_sample_timestamp() + 22850;
+        m_framestart_timestamp = m_sdrRadio->get_rx_timestamp() + 22850;
 
         std::cout << m_framestart_timestamp << std::endl;
 
@@ -114,6 +114,10 @@ void PhyThread::run() {
             //     std::cout << x.real() << " : " << x.imag() << std::endl;
             // }
 
+            std::cout << "TX ts " << m_sdrRadio->m_tx_status.timestamp << std::endl;
+            std::cout << "RX ts " << m_sdrRadio->m_rx_status.timestamp << std::endl;
+            std::cout << "RX ts x " << m_sdrRadio->get_rx_timestamp() << std::endl;
+
             m_iqbuffer_tx->timestampFirstSample =  m_framestart_timestamp;
             
             m_sdrRadio->send_IQ_data();
@@ -133,7 +137,7 @@ void PhyThread::run() {
 
  //           uint64_t t = m_sdrRadio->get_sample_timestamp();
  //           std::cout << t << std::endl;
-            while(m_sdrRadio->get_sample_timestamp()+4100 < m_framestart_timestamp) {
+            while(m_sdrRadio->get_rx_timestamp()+10000 < m_framestart_timestamp) {
                 //std::cout << ".";
             }
 //            std::cout << std::endl;

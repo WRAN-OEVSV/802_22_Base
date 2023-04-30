@@ -242,7 +242,7 @@ int LimeRadio::send_Tone() {
 
 
 
-uint64_t LimeRadio::get_sample_timestamp() {
+uint64_t LimeRadio::get_rx_timestamp() {
 
     // LOG_RADIO_INFO("LimeRadio::receive_IQ_data(): receive IQ data from current SDR");
 
@@ -266,11 +266,11 @@ uint64_t LimeRadio::get_sample_timestamp() {
 
     // @todo -- update to class member variables
 
-    lms_stream_status_t rx_status;
-    lms_stream_status_t tx_status;
+    // lms_stream_status_t rx_status;
+    // lms_stream_status_t tx_status;
 
-    LMS_GetStreamStatus(&m_rx_streamId, &rx_status);
-    LMS_GetStreamStatus(&m_tx_streamId, &tx_status);
+    LMS_GetStreamStatus(&m_rx_streamId, &m_rx_status);
+    LMS_GetStreamStatus(&m_tx_streamId, &m_tx_status);
 
 
 
@@ -279,7 +279,7 @@ uint64_t LimeRadio::get_sample_timestamp() {
 
     //m_isRxTxRunning.store(false);
 
-    return rx_status.timestamp;
+    return m_rx_status.timestamp;
 //    return m_rx_metadata.timestamp;
 
 }
