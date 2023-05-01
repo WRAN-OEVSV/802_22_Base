@@ -183,7 +183,7 @@ int main(int argc, const char* argv[])
 
         //wait for waitTime seconds and then stop the phy thread to limit the amount
         //of data collected for testing
-        uint64_t waitTime = 10;
+        uint64_t waitTime = 20;
         std::thread w1(warta,phy, waitTime);
  
         phy->run(); // this is blocking for testing at the moment
