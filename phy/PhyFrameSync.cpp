@@ -724,7 +724,8 @@ int PhyFrameSync::execute_sync_STSb()
     std::cout << "grepgrepgrep_b," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_prime << "," << m_timer << "," << nu_hat << std::endl;
 
     // NICHT SICHER OB DAS STIMMT MIT DEM FRAME START ....
-    std::cout << "STSb framestart (roughly) ," << (m_currentSampleTimestamp - 1024 + (0 - (int)roundf(tau_prime))) << std::endl;
+    // muss die cp_len dazugekommen werden?
+    std::cout << "STSb framestart (roughly) ," << (m_currentSampleTimestamp - (m_M + m_cp_len) + (0 - (int)roundf(tau_prime))) << std::endl;
 
 
 
