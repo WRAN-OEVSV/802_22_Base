@@ -60,6 +60,7 @@ private:
     // symbol information
     unsigned int m_M;                               // number of subcarriers
     unsigned int m_M2;                               // number of subcarriers div by 2
+    unsigned int m_M4;                               // number of subcarriers div by 4
     unsigned int m_cp_len;                          // cyclic prefix length
     unsigned int m_taper_len;                       // taper length
     unsigned char * m_subcarrier_allocation_STS;    // subcarrier allocation (null, pilot, data)

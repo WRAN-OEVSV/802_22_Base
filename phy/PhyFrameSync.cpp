@@ -18,6 +18,7 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
 
     // derived values
     m_M2 = m_M/2;
+    m_M4 = m_M/4;
 
     
 
@@ -356,7 +357,7 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
         }
         break;
     case FRAMESYNC_STATE_RXSYMBOLS:
-        if(m_wait > (17*1280)) {
+        if(m_wait > (16*1280)) {
             m_wait = 0;
             m_timer = 0;
             m_sync_STS_count = 0;
@@ -590,7 +591,7 @@ int PhyFrameSync::execute_sync_STSa()
     liquid_float_complex s_hat;
     STS_metrics(m_gain_STSa, s_hat);
 
-    std::cout << "s_hat, m_g0: " << std::abs(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
+    std::cout << "s_hat abs,arg, m_g0: " << std::abs(s_hat) << ":" << std::arg(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
 
 
     s_hat *= m_g0;
@@ -643,7 +644,7 @@ int PhyFrameSync::execute_sync_STSb()
     liquid_float_complex s_hat;
     STS_metrics(m_gain_STSb, s_hat);
 
-    std::cout << "s_hat, m_g0: " << std::abs(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
+    std::cout << "s_hat abs,arg, m_g0: " << std::abs(s_hat) << ":" << std::arg(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
 
     s_hat *= m_g0;
 
@@ -662,17 +663,24 @@ int PhyFrameSync::execute_sync_STSb()
 //     printf("**********\n");
 // #endif
 
+
+    std::cout << "s_hat0_1 arg: " << std::arg(m_s_hat_0 + m_s_hat_1) << std::endl;
+
     // re-adjust timer accordingly
-    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M2) / (2*M_PI);
+//    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M2) / (2*M_PI);
+//    m_timer = 256 - (int)roundf(tau_prime);
 
-    m_timer = 256 - (int)roundf(tau_prime);
-
+    // korrektur STS ist eine M/4 wiederholung nicht M/2
+    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M4) / (2*M_PI);
+    m_timer = (int)(m_M4/2) - (int)roundf(tau_prime);
 
 
     if(std::abs(m_s_hat_1) < (std::abs(m_s_hat_0)-0.5)) {
         // we hit the frame at the very end on the first bunch of smaples received by the SDR
         std::cout << "STSb hit coming from upper" << std::endl;
         std::cout << "STSb " << m_currentSampleTimestamp << "," << std::abs(m_s_hat_0) << "," << std::abs(m_s_hat_1)<< ","  << tau_prime << std::endl;
+
+        m_iqdebug->freeze(); // DEBUG
 
         m_STS_detect_hit_upper_tresh = true;
         m_timer = 0;
@@ -716,7 +724,7 @@ int PhyFrameSync::execute_sync_STSb()
     std::cout << "grepgrepgrep_b," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_prime << "," << m_timer << "," << nu_hat << std::endl;
 
     // NICHT SICHER OB DAS STIMMT MIT DEM FRAME START ....
-    std::cout << "STSb framestart (roughly) " << (m_currentSampleTimestamp - 1024 + (0 - (int)roundf(tau_prime))) << std::endl;
+    std::cout << "STSb framestart (roughly) ," << (m_currentSampleTimestamp - 1024 + (0 - (int)roundf(tau_prime))) << std::endl;
 
 
 
