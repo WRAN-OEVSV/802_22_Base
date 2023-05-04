@@ -2,8 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/liquid-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-relase/_deps/liquid-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/LimeSuite" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/argon2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/cxxopts" vcs="Git" />
