@@ -65,7 +65,7 @@ int Radio::send_Tone() {
     return 0;
 };
 
-uint64_t Radio::get_sample_timestamp() {
+uint64_t Radio::get_rx_timestamp() {
     // defined in radio specific class (e.g. LimeRadio)
     return 0;
 };

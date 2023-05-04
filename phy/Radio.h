@@ -176,7 +176,12 @@ public:
 
     virtual int send_Tone();
 
-    virtual uint64_t get_sample_timestamp();
+    virtual uint64_t get_rx_timestamp();
+
+
+
+    lms_stream_status_t m_rx_status;    // status of RX stream from LMS_GetStatus   (is updated on receive and get timestamp)
+    lms_stream_status_t m_tx_status;    // status of TX stream from LMS_GetStatus   (is updated on transmit and get timestamp)
 
     
 protected:

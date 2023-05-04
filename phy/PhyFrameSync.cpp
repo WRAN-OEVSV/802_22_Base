@@ -18,6 +18,7 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
 
     // derived values
     m_M2 = m_M/2;
+    m_M4 = m_M/4;
 
     
 
@@ -96,6 +97,10 @@ PhyFrameSync::PhyFrameSync(unsigned int M,
 //     q->squelch_enabled = 0;
 // #endif
 
+
+
+    m_sync_STS_count = 0;
+
     // // reset object
     reset_parameters();
 
@@ -131,6 +136,8 @@ int PhyFrameSync::reset_parameters() {
     m_STS_sync_thresh   = 1400; // (m_M > 44) ? 0.30f : 0.30f + 0.01f*(44 - m_M);
 
     m_STS_detect_hit_upper_tresh = false;
+
+    m_sync_STS_count = 0;
 
     // // reset state
     m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
@@ -305,6 +312,7 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
     }
 
 
+    
 
     windowcf_push(m_input_buffer,sample);
 
@@ -316,12 +324,21 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
 
     switch (m_frameSyncState)
     {
-    case FRAMESYNC_STATE_DETECT_STS:
+    case FRAMESYNC_STATE_DETECT_STS:            //default
         execute_detect_STS();
         break;
 
     case FRAMESYNC_STATE_SYNC_STS:
         execute_sync_STS();
+        m_sync_STS_count++;
+        if(m_sync_STS_count > 1920)    // wenn nach 1,5 symbols kein sync da ist dann ist etwas faul ... 
+        {
+            // we need too long to sync .. something is wrong
+            std::cout << "something is wrong" << std::endl;
+            m_iqdebug->freeze();                                    //IQDEBUG stop adding data to iq debug queue
+            m_frameSyncState = FRAMESYNC_STATE_DETECT_STS;
+            m_sync_STS_count = 0;
+        }
         break;
 
     case FRAMESYNC_STATE_STS_0:
@@ -340,9 +357,10 @@ void PhyFrameSync::execute(liquid_float_complex sample) {
         }
         break;
     case FRAMESYNC_STATE_RXSYMBOLS:
-        if(m_wait > (3*1280)) {
+        if(m_wait > (16*1280)) {
             m_wait = 0;
             m_timer = 0;
+            m_sync_STS_count = 0;
             m_frameSyncState = FRAMESYNC_STATE_SYNC_STS;
             std::cout << m_currentSampleTimestamp << std::endl;
         } else {
@@ -363,8 +381,12 @@ int PhyFrameSync::execute_detect_STS() {
 
     m_timer++;
 
-    if (m_timer < (m_M/4))             // smaller serach window
+    if (m_timer < (m_M/4))             // M/4 kleiner window oder M/2 für grösseres Window?
         return 0;
+
+
+    std::cout << "det_STS" << std::endl;
+
 
     // reset timer
     m_timer = 0;
@@ -413,6 +435,9 @@ int PhyFrameSync::execute_detect_STS() {
 
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
+
+    if(g < 300)
+       std::cout  << "detect: g " << g << " rssi " << -10*log10(g) << " shat " << std::abs(s_hat)  << std::endl;
 
     // 
     if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
@@ -471,12 +496,14 @@ int PhyFrameSync::execute_sync_STS() {
 
     // at this point we should be in the CP of the STS frame (after the inital lock)
     // we move towards the lower threshold in sample chunks
-    if (m_timer < 31) {
-        if(m_timer == 1) std::cout << ":";
+    if (m_timer < m_M/4) {                                  // wieso war das 31 ?????
+        // if(m_timer == 1) std::cout << ":";
         return 0;
     }
+    //std::cout << std::endl;
 
-  //  std::cout << std::endl;
+    std::cout << "sync_STS" << std::endl;
+
 
     // reset timer
     m_timer = 0;
@@ -513,6 +540,10 @@ int PhyFrameSync::execute_sync_STS() {
     // save gain (permits dynamic invocation of get_rssi() method)
     m_g0 = g;
 
+    // // DEBUG RSSI !!!
+    // if(g < 10000)
+        std::cout  << "sync: g " << g << " rssi " << -10*log10(g) << " shat " << std::abs(s_hat)  << std::endl;
+
 
     if (std::abs(s_hat) > m_STS_detect_lower_thresh) {
         int dt = (int)roundf(tau_hat);
@@ -541,6 +572,10 @@ int PhyFrameSync::execute_sync_STSa()
     if (m_timer < m_M2)
         return 0;
 
+    std::cout << "STSa" << std::endl;
+
+
+
     // reset timer
     m_timer = 0;
 
@@ -555,6 +590,10 @@ int PhyFrameSync::execute_sync_STSa()
 
     liquid_float_complex s_hat;
     STS_metrics(m_gain_STSa, s_hat);
+
+    std::cout << "s_hat abs,arg, m_g0: " << std::abs(s_hat) << ":" << std::arg(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
+
+
     s_hat *= m_g0;
 
     m_s_hat_0 = s_hat;
@@ -591,6 +630,10 @@ int PhyFrameSync::execute_sync_STSb()
     // reset timer
     // m_timer = m_M + m_cp_len - m_backoff;
 
+
+    std::cout << "STSb" << std::endl;
+
+
     //
     liquid_float_complex *rc;
     windowcf_read(m_input_buffer, &rc);
@@ -600,6 +643,9 @@ int PhyFrameSync::execute_sync_STSb()
 
     liquid_float_complex s_hat;
     STS_metrics(m_gain_STSb, s_hat);
+
+    std::cout << "s_hat abs,arg, m_g0: " << std::abs(s_hat) << ":" << std::arg(s_hat) << ":" << m_g0 << ":" << std::abs(s_hat*m_g0) << std::endl;
+
     s_hat *= m_g0;
 
     m_s_hat_1 = s_hat;
@@ -617,17 +663,24 @@ int PhyFrameSync::execute_sync_STSb()
 //     printf("**********\n");
 // #endif
 
+
+    std::cout << "s_hat0_1 arg: " << std::arg(m_s_hat_0 + m_s_hat_1) << std::endl;
+
     // re-adjust timer accordingly
-    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M2) / (2*M_PI);
+//    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M2) / (2*M_PI);
+//    m_timer = 256 - (int)roundf(tau_prime);
 
-    m_timer = 256 - (int)roundf(tau_prime);
-
+    // korrektur STS ist eine M/4 wiederholung nicht M/2
+    float tau_prime = std::arg(m_s_hat_0 + m_s_hat_1) * (float)(m_M4) / (2*M_PI);
+    m_timer = (int)(m_M4/2) - (int)roundf(tau_prime);
 
 
     if(std::abs(m_s_hat_1) < (std::abs(m_s_hat_0)-0.5)) {
         // we hit the frame at the very end on the first bunch of smaples received by the SDR
         std::cout << "STSb hit coming from upper" << std::endl;
-        std::cout << "STSb " << m_currentSampleTimestamp << "," << std::abs(m_s_hat_0) << "," << std::arg(m_s_hat_1)<< ","  << tau_prime << std::endl;
+        std::cout << "STSb " << m_currentSampleTimestamp << "," << std::abs(m_s_hat_0) << "," << std::abs(m_s_hat_1)<< ","  << tau_prime << std::endl;
+
+        m_iqdebug->freeze(); // DEBUG
 
         m_STS_detect_hit_upper_tresh = true;
         m_timer = 0;
@@ -671,7 +724,8 @@ int PhyFrameSync::execute_sync_STSb()
     std::cout << "grepgrepgrep_b," << m_currentSampleTimestamp << "," << std::abs(s_hat) << "," << std::arg(s_hat) << "," << tau_prime << "," << m_timer << "," << nu_hat << std::endl;
 
     // NICHT SICHER OB DAS STIMMT MIT DEM FRAME START ....
-    std::cout << "framestart (roughly)" << (m_currentSampleTimestamp - 1024 + (0 - (int)roundf(tau_prime))) << std::endl;
+    // muss die cp_len dazugekommen werden?
+    std::cout << "STSb framestart (roughly) ," << (m_currentSampleTimestamp - (m_M + m_cp_len) + (0 - (int)roundf(tau_prime))) << std::endl;
 
 
 

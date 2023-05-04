@@ -72,12 +72,22 @@ int LimeRadio::receive_IQ_data() {
  
     if(m_isRX) {
 
+
+        auto t1 = std::chrono::steady_clock::now();
+
+
         // clear out RX buffer from potential old stuff
         m_IQdataRXBuffer->data.clear();
 
         // Receive samples
         // @todo - check flag when there is a buffer overflow on the Lime .. i.e. we are getting samples too slow
-        int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 500);
+        int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, m_rxSampleCnt, &m_rx_metadata, 100);     // timeout 500->100
+
+        auto t2 = std::chrono::steady_clock::now();
+
+        LMS_GetStreamStatus(&m_rx_streamId, &m_rx_status);
+
+        auto t21 = std::chrono::steady_clock::now();
 
         //I and Q samples are interleaved in buffer: IQIQIQ...
         float *pp = (float *)m_rxIQbuffer;
@@ -97,6 +107,15 @@ int LimeRadio::receive_IQ_data() {
         } else {
             LOG_RADIO_DEBUG("no samples received!!");
         }
+
+
+        auto t3 = std::chrono::steady_clock::now();
+
+        std::cout << "ts read : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << " : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t21 - t1).count() << " : ";
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() << std::endl;
+
 
     } else {
         LOG_RADIO_ERROR("receive_IQ_data(): m_isRX is false -- are we set to transmit ????");
@@ -150,6 +169,7 @@ int LimeRadio::send_IQ_data() {
             //Send samples with delay from RX (waitForTimestamp is enabled)
             m_tx_metadata.timestamp = m_IQdataTXBuffer->timestampFirstSample;
             LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, &m_tx_metadata, 500);    // @todo error handling on send error
+        //    std::cout << m_tx_metadata.timestamp << std::endl;
 
             // for testing send without metadata
             // LMS_SendStream(&m_tx_streamId, m_txIQbuffer, samplesWrite, nullptr, 500);    // @todo error handling on send error
@@ -208,7 +228,7 @@ int LimeRadio::send_Tone() {
 
         //Send samples with delay from RX (waitForTimestamp is enabled)
 //        m_tx_metadata.timestamp = m_IQdataTXBuffer->timestampFirstSample;
-        LMS_SendStream(&m_tx_streamId, tx_buffer, samplesWrite, nullptr, 500);    // @todo error handling on send error
+        LMS_SendStream(&m_tx_streamId, tx_buffer, samplesWrite, nullptr, 100);    // @todo error handling on send error
 
     } else {
         LOG_RADIO_ERROR("send_IQ_data(): m_isRX is true -- are we set to receive ????");
@@ -222,12 +242,12 @@ int LimeRadio::send_Tone() {
 
 
 
-uint64_t LimeRadio::get_sample_timestamp() {
+uint64_t LimeRadio::get_rx_timestamp() {
 
     // LOG_RADIO_INFO("LimeRadio::receive_IQ_data(): receive IQ data from current SDR");
 
-    m_isRxTxRunning.store(true);
-    m_IQdataRXBuffer = Radio::getRXBuffer();
+    //m_isRxTxRunning.store(true);
+    //m_IQdataRXBuffer = Radio::getRXBuffer();
 
     // std::cout << m_IQdataRXBuffer << std::endl;
 
@@ -238,16 +258,29 @@ uint64_t LimeRadio::get_sample_timestamp() {
 
  
     // clear out RX buffer from potential old stuff
-    m_IQdataRXBuffer->data.clear();
+    //m_IQdataRXBuffer->data.clear();
 
     // Receive samples to get current timestamp
-    int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, 4000, &m_rx_metadata, 500);
+    //int samplesRead = LMS_RecvStream(&m_rx_streamId, m_rxIQbuffer, 4000, &m_rx_metadata, 500);
 
-  //  std::cout << m_rx_metadata.timestamp << std::endl;
 
-    m_isRxTxRunning.store(false);
+    // @todo -- update to class member variables
 
-    return m_rx_metadata.timestamp;
+    // lms_stream_status_t rx_status;
+    // lms_stream_status_t tx_status;
+
+    LMS_GetStreamStatus(&m_rx_streamId, &m_rx_status);
+    LMS_GetStreamStatus(&m_tx_streamId, &m_tx_status);
+
+
+
+    // std::cout << "RX: " << rx_status.timestamp << " : " << rx_status.overrun << " : " << rx_status.underrun << " : " << rx_status.droppedPackets << std::endl;
+    // std::cout << "TX: " << tx_status.timestamp << " : " << tx_status.overrun << " : " << tx_status.underrun << " : " << tx_status.droppedPackets << std::endl;
+
+    //m_isRxTxRunning.store(false);
+
+    return m_rx_status.timestamp;
+//    return m_rx_metadata.timestamp;
 
 }
 
@@ -322,10 +355,18 @@ int LimeRadio::initLimeSDR() {
         error();
 
 
+    // set RX Antennna, Gain and calibrate
+    // LMS_SetAntenna ??
+    if(LMS_SetNormalizedGain(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_NOM_RX_GAIN) != 0)
+        error();
+
+    LMS_Calibrate(m_lms_device, LMS_CH_RX, LMS_Channel, DEFAULT_SAMPLE_RATE, 0 );
+
+
 
     // set TX Antennna, Gain and calibrate
-    if(LMS_SetAntenna(m_lms_device, LMS_CH_TX, LMS_Channel, LMS_PATH_TX1) != 0)
-        error();
+    // if(LMS_SetAntenna(m_lms_device, LMS_CH_TX, LMS_Channel, LMS_PATH_TX1) != 0)
+    //     error();
 
     if(LMS_SetNormalizedGain(m_lms_device, LMS_CH_TX, LMS_Channel, DEFAULT_NOM_TX_GAIN) != 0)
         error();
@@ -353,11 +394,11 @@ void LimeRadio::initStreaming() {
     LOG_RADIO_INFO("Init RX Streaming");
 
     //Initialize stream
-    m_rx_streamId.channel = LMS_Channel;                 //channel number
-    m_rx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_rx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
-    m_rx_streamId.isTx = false;                          //RX channel
-    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
+    m_rx_streamId.channel = LMS_Channel;                 // channel number
+    m_rx_streamId.fifoSize = 1024 * 100;                 // fifo size in samples
+    m_rx_streamId.throughputVsLatency = 1;             // throughput vs speed -- 0.5 middle - 1.0 fastest
+    m_rx_streamId.isTx = false;                          // RX channel
+    m_rx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   // F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_rx_streamId) != 0)
         error();
 
@@ -387,8 +428,8 @@ void LimeRadio::initStreaming() {
 
     //Initialize TX stream
     m_tx_streamId.channel = LMS_Channel;                 //channel number
-    m_tx_streamId.fifoSize = 1024 * 1024;                //fifo size in samples
-    m_tx_streamId.throughputVsLatency = 0.5;             //optimize for max throughput
+    m_tx_streamId.fifoSize = 1024 * 100;                //fifo size in samples
+    m_tx_streamId.throughputVsLatency = 1;             //optimize for max throughput
     m_tx_streamId.isTx = true;                          //RX channel
     m_tx_streamId.dataFmt = lms_stream_t::LMS_FMT_F32;   //F32 not optimal but easier with liquid @todo check for 12bit
     if (LMS_SetupStream(m_lms_device, &m_tx_streamId) != 0)
@@ -412,7 +453,7 @@ void LimeRadio::initStreaming() {
     LOG_RADIO_TRACE("initStreaming() rx stream handle {}", m_tx_streamId.handle);
 
     //Streaming Metadata
-    m_tx_metadata.flushPartialPacket = false; //currently has no effect in RX
+    m_tx_metadata.flushPartialPacket = true; //currently has no effect in RX
     m_tx_metadata.waitForTimestamp = true; //currently has no effect in RX
 
 

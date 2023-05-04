@@ -178,7 +178,7 @@ int PhyFrameGen::init_STS() {
     // normalize time-domain sequence level
     float g = 1.0f / sqrtf(M_STS);
     for (i=0; i<m_M; i++)
-        m_sts[i] *= g * 0.5;           // @todo CHECK CHECK how to handle the gain of the IQ signal ..seems to be overloading for testing lower
+        m_sts[i] *= g * 0.6;           // @todo CHECK CHECK how to handle the gain of the IQ signal ..seems to be overloading for testing lower
 
     return 0;
 }
