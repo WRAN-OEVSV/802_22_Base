@@ -4,7 +4,7 @@
     <td>
     <b>Open SDR Platform</b><br><br>
         <img src="doc/img/Austria.jpg" height="11"> Austria:<br>
-        OE3BIA, OE9RIR, OE9RWV, Fabian (OE9xxx)<br><br>
+        OE3BIA, OE9RIR, OE9RWV, OE9LTX<br><br>
         <img src="doc/img/France.jpg" height="11"> France:<br>         
         F4VVO<br><br>
         Web: <a href="https://rpx-100.net">www.rpx-100.net</a><br>
